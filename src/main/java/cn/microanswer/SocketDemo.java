@@ -1169,8 +1169,8 @@ public class SocketDemo {
             // 消息输入框
             private JTextArea textArea;
             // 聊天记录展示列表
-            private Vector<Msg> msgVector;
-            private JList<Msg> jList;
+            private ArrayList<Msg> msgs;
+            private JPanel msgListPanel;
             private JScrollPane scrollPane;
 
             ActionListener actionListener = new ActionListener() {
@@ -1229,13 +1229,12 @@ public class SocketDemo {
             void initUI() {
 
                 // 中间显示聊天记录
-                msgVector = new Vector<>();
-                jList = new JList<>(msgVector);
-                jList.setCellRenderer(new MListCellRender());
-                jList.setLayoutOrientation(JList.VERTICAL);
-                jList.setFixedCellWidth(Constant.CLIENT_WINDOW_WIDTH - 25);
-                scrollPane = new JScrollPane(jList);
+                msgs = new ArrayList<>();
+                msgListPanel = new JPanel(new LinearLayout());
+                msgListPanel.setBackground(Color.WHITE);
+                scrollPane = new JScrollPane(msgListPanel);
                 scrollPane.setBackground(Color.WHITE);
+                scrollPane.getVerticalScrollBar().setUnitIncrement(5);
                 scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
                 scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
                 this.add(scrollPane, BorderLayout.CENTER);
@@ -1243,7 +1242,7 @@ public class SocketDemo {
                 // SOUTH 方向显示聊天输入框
                 JPanel southPanel = new JPanel();
                 southPanel.setLayout(new BorderLayout());
-                JPanel funBtnsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0)); // 一排功能按钮
+                JPanel funBtnsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0)); // 一排功能按钮
                 JButton button2 = new JButton("图片");
                 button2.setActionCommand(ACTION_COMMAND_CHOOSE_PIC);
                 button2.addActionListener(actionListener);
@@ -1263,7 +1262,7 @@ public class SocketDemo {
                 jScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
                 jScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
                 southPanel.add(jScrollPane, BorderLayout.CENTER);
-                JPanel sendBtnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 0));
+                JPanel sendBtnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
                 JButton button1 = new JButton("清空");
                 button1.setActionCommand(ACTION_COMMAND_CLEAR);
                 button1.addActionListener(actionListener);
@@ -1301,11 +1300,13 @@ public class SocketDemo {
                     if (!Constant.isEmpty(text) && !Constant.isEmpty(text.trim())) {
                         try {
                             Msg msg = new Msg(MsgHead.TYPE_TXT, client.getUserNamme(), targetUserName, text);
-                            client.sendMsg(msg, null);
-
-                            textArea.setText("");
-
-                            onMsg(msg);
+                            client.sendMsg(msg, new Msg.SendListener() {
+                                @Override
+                                public void onEnd(Msg msg) {
+                                    textArea.setText("");
+                                    onMsg(msg);
+                                }
+                            });
                             return;
                         } catch (Exception e) {
                             e.printStackTrace();
@@ -1324,12 +1325,25 @@ public class SocketDemo {
             }
 
             void onMsg(Msg msg) {
-                msgVector.add(msg);
-                if (jList != null) {
-                    jList.updateUI();
-                    Point point = jList.indexToLocation(msgVector.size() - 1);
-                    scrollPane.getViewport().setViewPosition(point);
-                }
+                msgs.add(msg);
+                msgListPanel.add(new MsgItemView(msg, msgs.size() - 1));
+                Task.TaskHelper.getInstance().run(new Task.ITask<Void, Void>() {
+                    @Override
+                    public Void run(Void param) throws Exception {
+                        Thread.sleep(100);
+                        return null;
+                    }
+
+                    @Override
+                    public void afterRun(Void value) {
+                        super.afterRun(value);
+                        TalkPanel.this.invalidate();
+                        msgListPanel.invalidate();
+                        scrollPane.invalidate();
+
+                        msgListPanel.grabFocus();
+                    }
+                });
             }
         }
 
@@ -1395,12 +1409,120 @@ public class SocketDemo {
             }
         }
 
-        class MListCellRender extends JPanel implements ListCellRenderer<Msg> {
+        class MsgItemView extends JPanel {
 
-            @Override
-            public Component getListCellRendererComponent(JList<? extends Msg> list, Msg value, int index, boolean isSelected, boolean cellHasFocus) {
+            BufferedImage reduceImage(InputStream inputStream) throws IOException {
+                int showW = 130;
+                int showH = 0;
+                try {
+                    // 构造Image对象
+                    BufferedImage src = javax.imageio.ImageIO.read(inputStream);
+                    int width = src.getWidth();
+                    int height = src.getHeight();
+
+                    if (width > showW) {
+                        showH = Math.round(130 * (height / (float) width));
+                    } else {
+                        showW = width;
+                        showH = height;
+                    }
+                    // 缩小边长
+                    BufferedImage tag = new BufferedImage(showW, showH, src.getType());
+                    // 绘制 缩小  后的图片
+                    tag.getGraphics().drawImage(src, 0, 0, tag.getWidth(), tag.getHeight(), null);
+                    inputStream.close();
+                    return tag;
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
                 return null;
             }
+
+            private Msg msg;
+            private int index;
+            private boolean isme;
+            private SimpleDateFormat simpleDateFormat;
+
+            MsgItemView(Msg msg, int index) {
+                super(new BorderLayout());
+                setBackground(Color.WHITE);
+                this.index = index;
+                this.msg = msg;
+                this.isme = msg.msgHead.fromName.equals(client.getUserNamme());
+                simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss", Locale.CHINA);
+
+                initView();
+            }
+
+            void initView() {
+
+                JPanel infoPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+                infoPanel.setBackground(Color.WHITE);
+
+                // 消息发出者
+                JLabel fromLabel = new JLabel("<html><b>" + (isme ? "我说" : msg.msgHead.fromName) + "</b></html>");
+                fromLabel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+                if (!isme) {
+                    fromLabel.setForeground(Color.BLUE);
+                }
+                infoPanel.add(fromLabel);
+
+                // 消息发出时间
+                JLabel timeLabel = new JLabel(simpleDateFormat.format(new Date(msg.msgHead.createAt)));
+                timeLabel.setFont(new Font(timeLabel.getFont().getName(), timeLabel.getFont().getStyle(), timeLabel.getFont().getSize() - 2));
+                timeLabel.setBorder(BorderFactory.createEmptyBorder(7, 0, 0, 5));
+                timeLabel.setForeground(Color.GRAY);
+                infoPanel.add(timeLabel);
+
+                add(infoPanel, BorderLayout.NORTH);
+
+
+                // 文本消息
+                int type = msg.msgHead.msgType;
+
+                if (type == MsgHead.TYPE_TXT) {
+                    JLabel txtLabel = new JLabel(msg.getTxtBody());
+                    txtLabel.setBorder(BorderFactory.createEmptyBorder(0, 5, 2, 5));
+                    add(txtLabel, BorderLayout.CENTER);
+                } else if (type == MsgHead.TYPE_PIC) {
+                    JLabel picLabel = new JLabel();
+                    picLabel.setBorder(BorderFactory.createEmptyBorder(0, 5, 2, 5));
+                    try {
+                        if (isme) {
+                            picLabel.setIcon(new ImageIcon(reduceImage(new FileInputStream(msg.msgBody.userFile))));
+                        } else {
+                            picLabel.setIcon(new ImageIcon(reduceImage(new FileInputStream(msg.msgBody.cacheFile))));
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                    add(picLabel, BorderLayout.CENTER);
+                } else if (type == MsgHead.TYPE_FILE) {
+                    JPanel filePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+                    filePanel.setBackground(Color.WHITE);
+                    JLabel fileLabel = new JLabel();
+                    fileLabel.setBorder(BorderFactory.createEmptyBorder(0, 5, 2, 5));
+                    if (isme) {
+                        fileLabel.setText("发送文件<" + msg.msgHead.extra + ">");
+                    } else {
+                        fileLabel.setText("收到文件<" + msg.msgHead.extra + ">");
+                    }
+                    filePanel.add(fileLabel);
+
+                    JLabel seeFileLabel = new JLabel("点击查看");
+                    seeFileLabel.setForeground(Color.BLUE);
+                    seeFileLabel.setBorder(new UnderLineBorder());
+
+                    add(filePanel, BorderLayout.CENTER);
+                } else {
+                    JLabel txtLabel = new JLabel(msg.getTxtBody());
+                    txtLabel.setBorder(BorderFactory.createEmptyBorder(0, 5, 2, 5));
+                    add(txtLabel, BorderLayout.CENTER);
+                }
+
+            }
+
+
         }
     }
 
@@ -2232,6 +2354,98 @@ public class SocketDemo {
 
             public void onError(Exception e) {
                 e.printStackTrace();
+            }
+        }
+    }
+
+    static class LinearLayout implements LayoutManager2 {
+        static final int HORIZONTAL = 2;
+        static final int VERTICAL = 1;
+
+        private static final int MAX = 1;
+        private static final int MIN = 2;
+        private static final int PERFECT = 3;
+
+        int orientation;
+
+        LinearLayout() {
+            this.orientation = VERTICAL;
+        }
+
+
+        @Override
+        public void addLayoutComponent(Component comp, Object constraints) {
+        }
+
+        @Override
+        public float getLayoutAlignmentX(Container target) {
+            return 0f;
+        }
+
+        @Override
+        public float getLayoutAlignmentY(Container target) {
+            return 0f;
+        }
+
+        @Override
+        public void invalidateLayout(Container parent) {
+            int totleH = 0;
+            int componentCount = parent.getComponentCount();
+            for (int index = 0; index < componentCount; index++) {
+                Component component = parent.getComponent(index);
+                Dimension preferredSize = new Dimension(component.getPreferredSize());
+                totleH += preferredSize.height;
+            }
+            parent.setPreferredSize(new Dimension(0, totleH));
+        }
+
+        @Override
+        public void addLayoutComponent(String name, Component comp) {
+        }
+
+        @Override
+        public void removeLayoutComponent(Component comp) {
+        }
+
+        public Dimension maximumLayoutSize(Container target) {
+            return new Dimension(Integer.MAX_VALUE, Integer.MAX_VALUE);
+        }
+
+        public Dimension minimumLayoutSize(Container target) {
+            return new Dimension(0, 0);
+        }
+
+        public Dimension preferredLayoutSize(Container parent) {
+            return new Dimension(0, 0);
+        }
+
+        @Override
+        public void layoutContainer(Container parent) {
+            // System.out.println("layoutContainer, parent:" + parent);
+            int componentCount = parent.getComponentCount();
+            int width = parent.getWidth();
+            int height = parent.getHeight();
+
+            int x = 0, y = 0;
+            for (int index = 0; index < componentCount; index++) {
+                Component component = parent.getComponent(index);
+                Dimension preferredSize = new Dimension(component.getPreferredSize());
+                if (orientation == HORIZONTAL) {
+                    // 水平排列
+                    preferredSize.height = height;
+                } else if (orientation == VERTICAL) {
+                    // 垂直排列
+                    preferredSize.width = width;
+                }
+                component.setBounds(x, y, preferredSize.width, preferredSize.height);
+                if (orientation == HORIZONTAL) {
+                    // 水平排列
+                    x += preferredSize.width;
+                } else if (orientation == VERTICAL) {
+                    // 垂直排列
+                    y += preferredSize.height;
+                }
+
             }
         }
     }

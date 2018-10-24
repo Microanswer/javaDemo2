@@ -35,6 +35,11 @@ public class App {
         }
     }
 
+    /**
+     * 生成字符图片。
+     * @param path 原图片路劲
+     * @throws Exception
+     */
     public static void createAsciiPic(final String path) throws Exception{
         final String base = "@#&$%*o!:."; // 字符串由复杂到简单
 
