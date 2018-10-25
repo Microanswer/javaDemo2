@@ -215,9 +215,9 @@ public class SocketDemo {
             }
             boolean delete = f.delete();
             if (delete) {
-                System.out.println(f.getAbsolutePath() + "删除成功");
+                System.out.println(f.getAbsolutePath() + " 删除成功");
             } else {
-                System.err.println(f.getAbsolutePath() + "删除失败");
+                System.err.println(f.getAbsolutePath() + " 删除失败");
             }
         }
     }
@@ -1940,7 +1940,6 @@ public class SocketDemo {
                 fileOutputStream.flush();
                 fileOutputStream.close();
                 msgBody.cacheFile = tempFile;
-                msgBody.inputStream = new FileInputStream(tempFile);
             } else {
                 // 将内容直接读入内存
                 ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
@@ -1999,13 +1998,16 @@ public class SocketDemo {
             new ObjectOutputStream(outputStream).writeObject(msgHead);
 
             // 然后输出body
+            if (msgBody.inputStream == null) {
+                msgBody.inputStream = new FileInputStream(msgBody.cacheFile);
+            }
             Constant.streamCopy(msgBody.inputStream, outputStream, msgHead.contentLength);
             // 发送完毕，关闭输入流。
             msgBody.inputStream.close();
 
             if (deleteCache) {
                 if (msgBody.cacheFile != null) {
-                    msgBody.cacheFile.delete();
+                    Constant.deleteFile(msgBody.cacheFile);
                 }
             }
         }
