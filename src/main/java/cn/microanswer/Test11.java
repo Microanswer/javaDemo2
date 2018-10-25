@@ -2,11 +2,13 @@ package cn.microanswer;
 
 import javax.swing.*;
 import java.awt.*;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 
 public class Test11 {
 
     public static void main(String[] args) {
-        new MyJFrame().setVisible(true);
+
     }
 
 
@@ -117,6 +119,7 @@ public class Test11 {
                     // 垂直排列
                     preferredSize.width = width;
                 }
+                System.out.println();
                 component.setBounds(x, y, preferredSize.width, preferredSize.height);
                 if (orientation == HORIZONTAL) {
                     // 水平排列

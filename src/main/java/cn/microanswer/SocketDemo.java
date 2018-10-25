@@ -18,10 +18,9 @@ import java.util.*;
 
 /**
  * 使用 Socket 实现的简易聊天 Demo
+ * http://microanswer.cn
  *
- * @author Microanswer
- * @date 2018年10月19日22:09:21
- * @web http://microanswer.cn
+ * @author Microanswer 2018年10月19日22:09:21
  */
 public class SocketDemo {
 
@@ -31,7 +30,7 @@ public class SocketDemo {
     public static void main(String args[]) {
 
 
-        /**
+        /*
          * 此 Demo 演示流程：
          *
          * 运行程序 --> 选择作为服务端还是客户端
@@ -56,10 +55,24 @@ public class SocketDemo {
      * 常量类
      */
     static class Constant {
+        /**
+         * Microanswer 的网址
+         */
         static final String MICROANSWER_CN = "http://microanswer.cn";
+        /**
+         * 文本消息传递过程中的编码格式
+         */
         static final String CHAR_SET = "UTF-8";
+
+        /**
+         * 错误窗口宽度
+         */
         static final int ERR_WINDOW_WIDTH = 260;
+        /**
+         * 错误窗口高度
+         */
         static final int ERR_WINDOW_HEIGHT = 100;
+
         /**
          * 选择功能窗口的标题
          */
@@ -75,14 +88,7 @@ public class SocketDemo {
         /**
          * 选择功能窗口中说明按钮关于文字
          */
-        static final String OPTION_WINDOW_ABOUT_TXT = "关于";
-        /**
-         * 关于内容
-         */
-        static final String OPTION_WINDOW_ABOUT_CONTENT = "<html>" +
-                "<p>本演示程序演示了使用 Java 实现 Socket 通讯。</p>" +
-                "<p>制作：Microanswer<p>" +
-                "<a>网站：" + MICROANSWER_CN + "</a><html>";
+        static final String OPTION_WINDOW_ABOUT_TXT = "帮助和关于";
         /**
          * 选择功能窗口的宽度
          */
@@ -92,17 +98,14 @@ public class SocketDemo {
          */
         static final int OPTION_WINDOW_HEIGHT = 170;
 
-
         /**
          * 服务窗口的标题
          */
         static final String SERVER_WINDOW_TITLE = "服务状态";
-
         /**
          * 服务窗口宽度
          */
         static final int SERVER_WINDOW_WIDTH = 220;
-
         /**
          * 服务窗口高度
          */
@@ -110,32 +113,55 @@ public class SocketDemo {
         /**
          * 服务所在的端口
          */
-        static final int SERVER_PORT = 8008;
+        static final int SERVER_PORT = 9456;
 
         /**
          * 客户端窗口标题
          */
         static final String CLIENT_WINDOW_TITLE = "客户端";
-
-        static final int CLIENT_WINDOW_WIDTH = 400;
-        static final int CLIENT_WINDOW_HEIGHT = 400;
-
         /**
-         * 客户端默认用户名
+         * 客户端窗口宽度
          */
-        public static final String CLIENT_DEFALT_NAME = "客户端";
-
-        static final String SURE = "确定";
-        static final String CANCEL = "取消";
-        static final String CHECKWEB = "访问网站";
+        static final int CLIENT_WINDOW_WIDTH = 400;
+        /**
+         * 客户端窗口高度
+         */
+        static final int CLIENT_WINDOW_HEIGHT = 400;
 
         /**
          * 配置程序工作目录。 在传输大文件时，此目录将作为程序的工作目录，接收的大文件将被存放在此目录下。
          * 请务必以 / 结尾
          */
         static final String WORK_DIR = "./work_" + System.nanoTime() + "/";
-        public static final String TIP = "提示";
 
+        // 一些界面上使用的常用文案
+        static final String SURE = "确定";
+        static final String CANCEL = "取消";
+        static final String CHECKWEB = "访问网站";
+        static final String TIP = "提示";
+        static final String OPTION_WINDOW_ABOUT_CONTENT = "<html><p>本演示程序演示了使用 Java-Socket 实现的简单聊天系统。</p><p>支持文本消息，修改聊天人姓名，图片消息以及传送文件。</p><p>使用方法：</p><p>1、运行本程序先创建一个服务。<br/>2、再次运行本程序，选择创建客户端。<br/>3、多创建几个客户端，这些客户端即可进行聊天。<br/>4、在局域网里，你可以在其他机器上连接这台机器上的服务，ip请<br/>  输入服务端机器的局域网ip地址<br/>#注意：不能创建多个服务端，因为一个端口只能开启一个服务。</p><br/><p>制作：Microanswer<p><a>网站：" + MICROANSWER_CN + "</a><html>";
+        static final String WORK_DIR_CREATE_FAIL_TIP = "工作目录创建失败，请检查读写权限。";
+        static final String SERVER_WINDOW_CLOSE_TIP = "<html><p>关闭服务同时会关闭所有已连接的客户</p><p>端，每个客户端中的聊天数据将被删</p><p>除，包括图像、文件等信息。</p><p>确定要关闭吗？</p></html>";
+        static final String CLIENT_LIST = "客户列表";
+        static final String ERROR = "错误";
+        static final String CLIENT_ERROR = "客户端" + ERROR;
+        static final String CLIENT_WINDOW_CLOSE_TIP = "<html><p>退出客户端将删除所有聊天数据，包括</p><p>图像、文件等信息。你确定要退出吗？</p></html>";
+        static final String SERVER_INFO = "服务器信息";
+        static final String CLIENT_WINDOW_CLOSE_TALK_TIP = "<html><p>若该用户再次给你发消息，会话会自动打开。</p><p>确定要关闭会话吗？</p></html>";
+        static final String ALL_ONLINE_USER = "所有在线人员";
+        static final String NO_ONLINE_USER = "没有人在线";
+        static final String SEND = "发送";
+        static final String PIC = "图片";
+        static final String FILE = "文件";
+        static final String CLEAR = "清空";
+        static final String CLIENT_DEFALUT_SERVER_HOST = "127.0.0.1";
+        public static final String CLIENT_MODIFY_NAME_TIP = "<html><p>#注意：修改名称后，你将不能<br/>接收到已经和你聊天的别的好<br/>友发来的消息，需对方重新选<br/>择你新修改的名称后即可。</p></html>";
+
+        /**
+         * 判断字符串是否为空
+         * @param str 要判断的字符串
+         * @return true 如果为空， 否则false
+         */
         static boolean isEmpty(String str) {
             return str == null || str.length() == 0;
         }
@@ -187,19 +213,27 @@ public class SocketDemo {
                     }
                 }
             }
-            f.delete();
+            boolean delete = f.delete();
+            if (delete) {
+                System.out.println(f.getAbsolutePath() + "删除成功");
+            } else {
+                System.err.println(f.getAbsolutePath() + "删除失败");
+            }
         }
     }
 
+    /**
+     * 创建工作目录出错时，会使用此窗口进行提示。
+     */
     static class ErrorWindow extends JFrame {
         private Toolkit toolkit;
 
         ErrorWindow(Toolkit toolkit, String errMsg) {
-            super("错误");
-
+            super(Constant.ERROR);
             this.toolkit = toolkit;
-            Dimension screenSize = this.toolkit.getScreenSize();
 
+            // 设置窗口大小和位置
+            Dimension screenSize = this.toolkit.getScreenSize();
             setBounds(
                     (int) Math.round((screenSize.getWidth() - Constant.ERR_WINDOW_WIDTH) / 2f),
                     (int) Math.round((screenSize.getHeight() - Constant.ERR_WINDOW_HEIGHT) / 2f),
@@ -207,14 +241,19 @@ public class SocketDemo {
                     Constant.ERR_WINDOW_HEIGHT
             );
 
+            // 不允许拖动窗口大小
             setResizable(false);
+            // 窗口关闭时不采取任何行为，在事件中处理具体的关闭事件。
             setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
 
+            // 设置输出布局管理
             Container contentPane = getContentPane();
             contentPane.setLayout(new BorderLayout());
 
+            // 加入控件
             contentPane.add(new JLabel(errMsg, JLabel.CENTER), BorderLayout.CENTER);
 
+            // 加入确定按钮 。 （使用JPanel配合FlowLayout进行居中显示）
             JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 5));
             JButton jButton = new JButton(Constant.SURE);
             jButton.addMouseListener(new MouseAdapter() {
@@ -284,7 +323,7 @@ public class SocketDemo {
                         // 关闭角色选择窗口
                         OptionWindow.this.dispose();
                     } else {
-                        new ErrorWindow(toolkit, "工作目录创建失败，请检查读写权限。").setVisible(true);
+                        new ErrorWindow(toolkit, Constant.WORK_DIR_CREATE_FAIL_TIP).setVisible(true);
                     }
                 }
             }
@@ -369,8 +408,15 @@ public class SocketDemo {
      */
     static class ServerWindow extends JFrame implements Server.ServerListener {
         private Toolkit toolkit;
+
+        /**
+         * 服务器处理类
+         */
         private Server server;
 
+        /**
+         * window 关闭事件处理
+         */
         private WindowAdapter windowAdapter = new WindowAdapter() {
             @Override
             public void windowClosing(WindowEvent e) {
@@ -378,7 +424,7 @@ public class SocketDemo {
                     String[] options = new String[]{Constant.SURE, Constant.CANCEL};
                     int index = JOptionPane.showOptionDialog(
                             ServerWindow.this,
-                            "<html><p>关闭服务同时会关闭所有已连接的客户</p><p>端，每个客户端中的聊天数据将被删</p><p>除，包括图像、文件等信息。</p><p>确定要关闭吗？</p></html>",
+                            Constant.SERVER_WINDOW_CLOSE_TIP,
                             Constant.TIP,
                             JOptionPane.YES_NO_OPTION,
                             JOptionPane.QUESTION_MESSAGE,
@@ -409,8 +455,11 @@ public class SocketDemo {
             }
         };
 
+        // 服务状态显示控件
         private JLabel serverStatusLabel;
+        // 已连接人数显示控件
         private JLabel connectedCountLabel;
+        // 已连接人的列表显示控件
         private JList<String> jList;
 
         ServerWindow(Toolkit toolkit) {
@@ -462,7 +511,7 @@ public class SocketDemo {
             scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
             scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
             scrollPane.setPreferredSize(new Dimension(170, 100));
-            scrollPane.setBorder(BorderFactory.createTitledBorder("客户列表"));
+            scrollPane.setBorder(BorderFactory.createTitledBorder(Constant.CLIENT_LIST));
 
             getContentPane().add(scrollPane);
 
@@ -478,13 +527,13 @@ public class SocketDemo {
         @Override
         public void onError(Exception e) {
             e.printStackTrace();
-            JOptionPane.showMessageDialog(ServerWindow.this, e.getMessage(), "错误", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(ServerWindow.this, e.getMessage(), Constant.ERROR, JOptionPane.ERROR_MESSAGE);
         }
 
         @Override
         public void onClientError(Exception e, Client client) {
             e.printStackTrace();
-            JOptionPane.showMessageDialog(ServerWindow.this, e.getMessage(), "客户端错误", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(ServerWindow.this, e.getMessage(), Constant.CLIENT_ERROR, JOptionPane.ERROR_MESSAGE);
         }
 
         @Override
@@ -583,7 +632,8 @@ public class SocketDemo {
         }
 
         String getAddress() {
-            return serverSocket.getInetAddress().getHostName();
+            // return serverSocket.getInetAddress().getHostAddress();
+            return "127.0.0.1";
         }
 
         private Client.ClientListener clientListener = new Client.ClientListener() {
@@ -649,9 +699,9 @@ public class SocketDemo {
                         // 目标客户端没找到，可能是下线了。
                         System.out.println("未找到目标客户");
                     }
-                    // 其他未知消息
                 } else {
-
+                    // 其他未知消息
+                    System.out.println("未知消息");
                 }
             }
         };
@@ -683,15 +733,15 @@ public class SocketDemo {
             /**
              * 出现错误，此方法回调
              *
-             * @param e
+             * @param e 出错内容
              */
             void onError(Exception e);
 
             /**
              * 某个客户端出现错误
              *
-             * @param e
-             * @param client
+             * @param e      错误
+             * @param client 出错的客户端
              */
             void onClientError(Exception e, Client client);
 
@@ -706,8 +756,8 @@ public class SocketDemo {
             /**
              * 有客端更新数据
              *
-             * @param client
-             * @param name
+             * @param client 更新的
+             * @param name   客户端新名称
              */
             void onClientUpdate(Client client, String name);
 
@@ -755,10 +805,10 @@ public class SocketDemo {
         WindowAdapter windowAdapter = new WindowAdapter() {
             @Override
             public void windowClosing(WindowEvent e) {
-                String options[] = new String[]{"确定", "取消"};
+                String options[] = new String[]{Constant.SURE, Constant.CANCEL};
                 int index = JOptionPane.showOptionDialog(
                         ClientWindow.this,
-                        "<html><p>退出客户端将删除所有聊天数据，包括</p><p>图像、文件等信息。你确定要退出吗？</p></html>",
+                        Constant.CLIENT_WINDOW_CLOSE_TIP,
                         Constant.TIP,
                         JOptionPane.YES_NO_OPTION,
                         JOptionPane.QUESTION_MESSAGE,
@@ -767,7 +817,7 @@ public class SocketDemo {
                         options[0]);
 
                 if (index == 0) {
-                    client.colse();
+                    client.disConn();
                 }
             }
 
@@ -829,7 +879,7 @@ public class SocketDemo {
 
         void showConnectDialog() {
 
-            dialog = new JDialog(ClientWindow.this, "服务器信息");
+            dialog = new JDialog(ClientWindow.this, Constant.SERVER_INFO);
             dialog.setResizable(false);
             dialog.setAutoRequestFocus(true);
             dialog.setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
@@ -854,7 +904,7 @@ public class SocketDemo {
             contentPane.add(tipLabel);
             JTextField urlField = new JTextField();
             urlField.setPreferredSize(new Dimension(80, 20));
-            urlField.setText("127.0.0.1");
+            urlField.setText(Constant.CLIENT_DEFALUT_SERVER_HOST);
             contentPane.add(urlField);
             JLabel tipPortLabel = new JLabel("端  口 号：");
             contentPane.add(tipPortLabel);
@@ -888,8 +938,8 @@ public class SocketDemo {
         /**
          * 初始化客户端
          *
-         * @param url
-         * @param port
+         * @param url  主机地址
+         * @param port 端口号
          */
         void initClient(String url, int port) {
             client = new Client(url, port);
@@ -956,10 +1006,10 @@ public class SocketDemo {
                 }
             });
             dialog.setBounds(
-                    Math.round((ClientWindow.this.getWidth() - 200) / 2f + getX()),
-                    Math.round((ClientWindow.this.getHeight() - 100) / 2f + getY()),
-                    200,
-                    100
+                    Math.round((ClientWindow.this.getWidth() - 240) / 2f + getX()),
+                    Math.round((ClientWindow.this.getHeight() - 160) / 2f + getY()),
+                    240,
+                    160
             );
             Container contentPane = dialog.getContentPane();
             contentPane.setLayout(new FlowLayout(FlowLayout.CENTER, 0, 10));
@@ -968,6 +1018,11 @@ public class SocketDemo {
             JTextField nameFiled = new JTextField();
             nameFiled.setPreferredSize(new Dimension(100, 20));
             contentPane.add(nameFiled);
+            JLabel t = new JLabel(Constant.CLIENT_MODIFY_NAME_TIP);
+            t.setForeground(Color.RED);
+            t.setBorder(BorderFactory.createEmptyBorder(0,20,0,20));
+            t.setFont(new Font(t.getFont().getName(), t.getFont().getStyle(), t.getFont().getSize() - 1));
+            contentPane.add(t);
             JButton buttonLogin = new JButton(" 修改 ");
             buttonLogin.addMouseListener(new MouseAdapter() {
                 @Override
@@ -996,7 +1051,7 @@ public class SocketDemo {
         /**
          * 当有人发消息过来时，此方法被调用。
          *
-         * @param msg
+         * @param msg 消息内容
          */
         void onGetMsg(Msg msg) {
             String fromName = msg.msgHead.fromName;
@@ -1018,10 +1073,10 @@ public class SocketDemo {
         /**
          * 告知某一条消息发送成功了
          *
-         * @param msgId
+         * @param msgId 消息id
          */
         void onMsgSendSuccess(String msgId) {
-
+            System.out.println("消息：" + msgId + " 发送成功");
         }
 
         void setLocalUserName(String name) {
@@ -1039,7 +1094,7 @@ public class SocketDemo {
         /**
          * 新建聊天的对象或选择到某一个
          *
-         * @param fromName
+         * @param fromName 消息来自的名称
          */
         void setTalkUser(String fromName) {
             int index = talkingUsers.indexOf(fromName);
@@ -1072,7 +1127,7 @@ public class SocketDemo {
                 public void mouseClicked(MouseEvent e) {
                     String ops[] = new String[]{Constant.SURE, Constant.CANCEL};
                     int i = JOptionPane.showOptionDialog(ClientWindow.this,
-                            "<html><p>若该用户再次给你发消息，会话会自动打开。</p><p>确定要关闭会话吗？</p></html>", Constant.TIP, JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, ops, ops[1]);
+                            Constant.CLIENT_WINDOW_CLOSE_TALK_TIP, Constant.TIP, JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, ops, ops[1]);
                     if (i == 0) {
                         int i1 = jTabbedPane.indexOfTabComponent(jPanel);
                         jTabbedPane.removeTabAt(i1);
@@ -1089,7 +1144,7 @@ public class SocketDemo {
          * 显示所有在线的客户端
          */
         void showAllOnline() {
-            allUserDialog = new JDialog(ClientWindow.this, "所有在线人员");
+            allUserDialog = new JDialog(ClientWindow.this, Constant.ALL_ONLINE_USER);
             allUserDialog.setResizable(false);
             allUserDialog.setAutoRequestFocus(true);
             allUserDialog.setModal(true);
@@ -1155,7 +1210,7 @@ public class SocketDemo {
                 }
             }
             allUserDialog.dispose();
-            JOptionPane.showMessageDialog(ClientWindow.this, "没有人在线", Constant.TIP, JOptionPane.INFORMATION_MESSAGE);
+            JOptionPane.showMessageDialog(ClientWindow.this, Constant.NO_ONLINE_USER, Constant.TIP, JOptionPane.INFORMATION_MESSAGE);
         }
 
         /**
@@ -1208,7 +1263,7 @@ public class SocketDemo {
                                 return ACTION_COMMAND_CHOOSE_FILE.equals(actionCommand) ? "" : "png,jpg,jpeg,gif,bmp";
                             }
                         });
-                        jfc.showDialog(ClientWindow.this, "发送");
+                        jfc.showDialog(ClientWindow.this, Constant.SEND);
                         File selectedFile = jfc.getSelectedFile();
                         if (selectedFile != null) {
                             sendFile(selectedFile, ACTION_COMMAND_CHOOSE_PIC.equals(actionCommand));
@@ -1234,7 +1289,7 @@ public class SocketDemo {
                 msgListPanel.setBackground(Color.WHITE);
                 scrollPane = new JScrollPane(msgListPanel);
                 scrollPane.setBackground(Color.WHITE);
-                scrollPane.getVerticalScrollBar().setUnitIncrement(5);
+                scrollPane.getVerticalScrollBar().setUnitIncrement(6);
                 scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
                 scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
                 this.add(scrollPane, BorderLayout.CENTER);
@@ -1243,11 +1298,11 @@ public class SocketDemo {
                 JPanel southPanel = new JPanel();
                 southPanel.setLayout(new BorderLayout());
                 JPanel funBtnsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0)); // 一排功能按钮
-                JButton button2 = new JButton("图片");
+                JButton button2 = new JButton(Constant.PIC);
                 button2.setActionCommand(ACTION_COMMAND_CHOOSE_PIC);
                 button2.addActionListener(actionListener);
                 funBtnsPanel.add(button2);
-                JButton btn3 = new JButton("文件");
+                JButton btn3 = new JButton(Constant.FILE);
                 btn3.setActionCommand(ACTION_COMMAND_CHOOSE_FILE);
                 btn3.addActionListener(actionListener);
                 funBtnsPanel.add(btn3);
@@ -1263,11 +1318,11 @@ public class SocketDemo {
                 jScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
                 southPanel.add(jScrollPane, BorderLayout.CENTER);
                 JPanel sendBtnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
-                JButton button1 = new JButton("清空");
+                JButton button1 = new JButton(Constant.CLEAR);
                 button1.setActionCommand(ACTION_COMMAND_CLEAR);
                 button1.addActionListener(actionListener);
                 sendBtnPanel.add(button1);
-                JButton button = new JButton("发送");
+                JButton button = new JButton(Constant.SEND);
                 button.setActionCommand(ACTION_COMMAND_SEND);
                 button.addActionListener(actionListener);
                 sendBtnPanel.add(button);
@@ -1326,24 +1381,11 @@ public class SocketDemo {
 
             void onMsg(Msg msg) {
                 msgs.add(msg);
-                msgListPanel.add(new MsgItemView(msg, msgs.size() - 1));
-                Task.TaskHelper.getInstance().run(new Task.ITask<Void, Void>() {
-                    @Override
-                    public Void run(Void param) throws Exception {
-                        Thread.sleep(100);
-                        return null;
-                    }
-
-                    @Override
-                    public void afterRun(Void value) {
-                        super.afterRun(value);
-                        TalkPanel.this.invalidate();
-                        msgListPanel.invalidate();
-                        scrollPane.invalidate();
-
-                        msgListPanel.grabFocus();
-                    }
-                });
+                MsgItemView itemView = new MsgItemView(msg, msgs.size() - 1);
+                msgListPanel.add(itemView);
+                scrollPane.updateUI();
+                scrollPane.getViewport().setViewPosition(new Point(0, Integer.MAX_VALUE));
+                TalkPanel.this.grabFocus();
             }
         }
 
@@ -1373,7 +1415,7 @@ public class SocketDemo {
                 if (buttonLogin != null && buttonLogin.isValid()) {
                     buttonLogin.setEnabled(true);
                 }
-                JOptionPane.showMessageDialog(ClientWindow.this, e.getMessage(), "错误", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(ClientWindow.this, e.getMessage(), Constant.ERROR, JOptionPane.ERROR_MESSAGE);
             }
 
             @Override
@@ -1411,9 +1453,9 @@ public class SocketDemo {
 
         class MsgItemView extends JPanel {
 
-            BufferedImage reduceImage(InputStream inputStream) throws IOException {
+            BufferedImage reduceImage(InputStream inputStream) {
                 int showW = 130;
-                int showH = 0;
+                int showH;
                 try {
                     // 构造Image对象
                     BufferedImage src = javax.imageio.ImageIO.read(inputStream);
@@ -1481,9 +1523,9 @@ public class SocketDemo {
                 int type = msg.msgHead.msgType;
 
                 if (type == MsgHead.TYPE_TXT) {
-                    JLabel txtLabel = new JLabel(msg.getTxtBody());
+                    JLabel txtLabel = new JLabel("<html><p>" + msg.getTxtBody() + "</p></html>");
                     txtLabel.setBorder(BorderFactory.createEmptyBorder(0, 5, 2, 5));
-                    add(txtLabel, BorderLayout.CENTER);
+                    add(txtLabel);
                 } else if (type == MsgHead.TYPE_PIC) {
                     JLabel picLabel = new JLabel();
                     picLabel.setBorder(BorderFactory.createEmptyBorder(0, 5, 2, 5));
@@ -1511,7 +1553,21 @@ public class SocketDemo {
 
                     JLabel seeFileLabel = new JLabel("点击查看");
                     seeFileLabel.setForeground(Color.BLUE);
+                    seeFileLabel.setToolTipText("在文件浏览器中查看该文件");
                     seeFileLabel.setBorder(new UnderLineBorder());
+                    seeFileLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+                    seeFileLabel.addMouseListener(new MouseAdapter() {
+                        @Override
+                        public void mouseClicked(MouseEvent e) {
+                            super.mouseClicked(e);
+                            try {
+                                Runtime.getRuntime().exec("explorer /e,/select," + (isme ? msg.msgBody.userFile : msg.msgBody.cacheFile).getCanonicalPath());
+                            } catch (Exception e1) {
+                                e1.printStackTrace();
+                            }
+                        }
+                    });
+                    filePanel.add(seeFileLabel);
 
                     add(filePanel, BorderLayout.CENTER);
                 } else {
@@ -1537,7 +1593,7 @@ public class SocketDemo {
 
         private String host;
         private int port;
-        private String userNamme = "未设置";
+        private String userNamme = "";
 
         Client(String host, int port) {
             this.host = host;
@@ -1555,14 +1611,6 @@ public class SocketDemo {
 
         public void setClientListener(ClientListener clientListener) {
             this.clientListener = clientListener;
-        }
-
-        public ClientListener getClientListener() {
-            return clientListener;
-        }
-
-        public boolean isReady() {
-            return isReady;
         }
 
         @Override
@@ -1618,7 +1666,8 @@ public class SocketDemo {
                     }
                 } finally {
                     try {
-                        inputStream.close();
+                        if (inputStream != null)
+                            inputStream.close();
                         outputStream.flush();
                         outputStream.close();
                     } catch (Exception e) {
@@ -1665,7 +1714,7 @@ public class SocketDemo {
                 }
 
                 @Override
-                public Msg run(Msg param) throws Exception {
+                public Msg run(Msg param) {
                     try {
                         msg.write(outputStream);
                     } catch (Exception e) {
@@ -1714,7 +1763,6 @@ public class SocketDemo {
         static final int TYPE_VIDEO = 3; // 视频消息
         static final int TYPE_VOICE = 4; // 音频消息
         static final int TYPE_FILE = 5; // 文件消息
-        static final int TYPE_LOCATION = 6; // 位置消息
 
         // 系统级别消息
         static final int TYPE_SYSTEM_SETNAME = 11; // 请求设置名称
@@ -1763,7 +1811,6 @@ public class SocketDemo {
      */
     static class Msg {
 
-        boolean success;
         MsgHead msgHead;
         MsgBody msgBody;
 
@@ -1887,7 +1934,7 @@ public class SocketDemo {
                     msgHead.msgType == MsgHead.TYPE_VOICE ||
                     msgHead.msgType == MsgHead.TYPE_FILE) {
                 // 创建零时文件
-                File tempFile = new File(Constant.WORK_DIR + System.nanoTime());
+                File tempFile = new File(Constant.WORK_DIR + msgHead.extra);
                 FileOutputStream fileOutputStream = new FileOutputStream(tempFile);
                 Constant.streamCopy(inputStream, fileOutputStream, msgHead.contentLength);
                 fileOutputStream.flush();
@@ -1943,7 +1990,7 @@ public class SocketDemo {
         /**
          * 输出消息
          *
-         * @param outputStream
+         * @param outputStream 输出流
          * @param deleteCache  当传递 true 时，会检测此消息是否有缓存文件，如果有，将在消息发出后自动删除。
          */
         void write(BufferedOutputStream outputStream, boolean deleteCache) throws Exception {
@@ -2358,6 +2405,9 @@ public class SocketDemo {
         }
     }
 
+    /**
+     * 线性布局 （此类仅适用于本项目。请不要复制到别处使用）
+     */
     static class LinearLayout implements LayoutManager2 {
         static final int HORIZONTAL = 2;
         static final int VERTICAL = 1;
