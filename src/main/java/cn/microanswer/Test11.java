@@ -2,12 +2,10 @@ package cn.microanswer;
 
 import javax.swing.*;
 import java.awt.*;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 
 public class Test11 {
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
 
     }
 
