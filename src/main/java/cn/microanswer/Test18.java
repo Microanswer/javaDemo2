@@ -30,8 +30,11 @@ public class Test18 {
         layoutTX(n, rowCount, split, chat);
 
         layoutSJX(n, rowCount, split, chat);
+
+        layoutSJX2(5, "^");
     }
 
+    // 输出菱形
     static void layoutLX(int n, int rowCount, String split, String chat) {
         System.out.println("输出菱形:");
         // 输出菱形.
@@ -53,6 +56,7 @@ public class Test18 {
         System.out.println();
     }
 
+    // 输出梯形
     static void layoutTX(int n, int rowCount, String split, String chat) {
         // 输出梯形, 第 n-1 行后内内容相同
         System.out.println("输出梯形：");
@@ -70,6 +74,21 @@ public class Test18 {
         System.out.println();
     }
 
+    /**
+     * 生成三角形
+     * @param rowCount 三角形行数
+     * @param s 要组成图像的字符
+     */
+    static void layoutSJX2 (int rowCount, String s) {
+        for (int i = 1; i <= rowCount; i++) {
+            for (int j = 0; j < i; j++) {
+                System.out.print(s);
+            }
+            System.out.println();
+        }
+    }
+
+    // 输出三角形
     static void layoutSJX(int n, int rowCount, String split, String chat) {
         System.out.println("输出三角形：");
         int t = 0;
@@ -79,7 +98,7 @@ public class Test18 {
                 f = i;
                 t = f;
             } else {
-                f = t--;
+                f = --t;
             }
             for (int j = 0; j < f; j++) {
                 System.out.print(chat);
