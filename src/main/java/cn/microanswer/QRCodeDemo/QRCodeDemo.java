@@ -8,7 +8,6 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.image.BufferedImage;
-import java.awt.image.RenderedImage;
 import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -91,7 +90,7 @@ public class QRCodeDemo extends JFrame implements ActionListener {
         BufferedImage image = new BufferedImage(booleans[0].length * 3, booleans.length * 3, BufferedImage.TYPE_INT_ARGB);
 
         Graphics graphics = image.getGraphics();
-        Color transpart = new Color(1,1,1,1f);
+        Color transpart = new Color(1, 1, 1, 1f);
         for (int i = 0; i < booleans.length; i++) {
             for (int j = 0; j < booleans[i].length; j++) {
                 graphics.setColor(booleans[i][j] ? Color.BLACK : transpart);
@@ -115,7 +114,7 @@ public class QRCodeDemo extends JFrame implements ActionListener {
         if ("save".equals(actionCommand)) {
 
             Icon icon = resultLabel.getIcon();
-            if (icon instanceof ImageIcon){
+            if (icon instanceof ImageIcon) {
                 ImageIcon imageIcon = (ImageIcon) icon;
 
                 BufferedImage image = (BufferedImage) imageIcon.getImage();
