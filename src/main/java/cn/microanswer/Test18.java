@@ -1,41 +1,22 @@
 package cn.microanswer;
 
-import java.util.Scanner;
-
 public class Test18 {
     public static void main(String[] args) {
-
-        Scanner scanner = new Scanner(System.in);
-        System.out.println("输入一个数：");
-        String numStr = scanner.next();
-        while (!numStr.matches("[0-9]+")) {
-            System.out.println("您的输入不正确，请重新输入一个数值：");
-            numStr = scanner.nextLine();
-        }
-        System.out.println("请输入一个组成图形的字符：");
-        String chat = scanner.next();
-        while (chat.length() != 1) {
-            System.out.println("您必须输入一个字符，请重新输入：");
-            chat = scanner.nextLine();
-        }
-
-        // 分隔符，使用空格
-        String split = " ";
-
-        int n = Integer.parseInt(numStr);
-        int rowCount = 2 * n - 1;
-
-        layoutLX(n, rowCount, split, chat);
-
-        layoutTX(n, rowCount, split, chat);
-
-        layoutSJX(n, rowCount, split, chat);
-
-        layoutSJX2(5, "^");
+        int n = 6;
+        layoutLX(n, " ", "*");
+        layoutTX(n, " ", "*");
+        layoutSJX(n, " ", "*");
     }
 
-    // 输出菱形
-    static void layoutLX(int n, int rowCount, String split, String chat) {
+    /**
+     * 输出菱形
+     *
+     * @param n     任意输入一个数字吧！
+     * @param split 分隔符号，空格符号。
+     * @param chat  组成图像的符号
+     */
+    static void layoutLX(int n, String split, String chat) {
+        int rowCount = 2 * n - 1;
         System.out.println("输出菱形:");
         // 输出菱形.
         for (int i = 1; i <= rowCount; i++) {
@@ -57,7 +38,8 @@ public class Test18 {
     }
 
     // 输出梯形
-    static void layoutTX(int n, int rowCount, String split, String chat) {
+    static void layoutTX(int n, String split, String chat) {
+        int rowCount = 2 * n - 1;
         // 输出梯形, 第 n-1 行后内内容相同
         System.out.println("输出梯形：");
         for (int i = 1; i <= rowCount; i++) {
@@ -76,10 +58,11 @@ public class Test18 {
 
     /**
      * 生成三角形
+     *
      * @param rowCount 三角形行数
-     * @param s 要组成图像的字符
+     * @param s        要组成图像的字符
      */
-    static void layoutSJX2 (int rowCount, String s) {
+    static void layoutSJX2(int rowCount, String s) {
         for (int i = 1; i <= rowCount; i++) {
             for (int j = 0; j < i; j++) {
                 System.out.print(s);
@@ -89,12 +72,13 @@ public class Test18 {
     }
 
     // 输出三角形
-    static void layoutSJX(int n, int rowCount, String split, String chat) {
+    static void layoutSJX(int n, String split, String chat) {
+        int rowCount = 2 * n - 1;
         System.out.println("输出三角形：");
         int t = 0;
         for (int i = 1; i <= rowCount; i++) {
             int f;
-            if ( i <= n-1) {
+            if (i <= n - 1) {
                 f = i;
                 t = f;
             } else {

@@ -25,12 +25,19 @@ public class NewTest {
         while (testJavaFile.exists()) {
             index++;
             className = preName + index;
+
+            // 更根据类名查看是否有这个同名的文件夹，有文件夹，也不得行。
+            while (new File(testJavaDir, className).exists()) {
+                index++;
+                className = preName + index;
+            }
+
             testSrcFileName = className + ".java";
             testJavaFile = new File(testJavaDir, testSrcFileName);
         }
-        SimpleDateFormat s = new SimpleDateFormat("yyyy年MM月DD日 HH:mm:ss", Locale.CHINA);
+        SimpleDateFormat s = new SimpleDateFormat("yyyy年MM月dd日 HH:mm:ss", Locale.CHINA);
         String src =
-                "package cn.microanswer;\r\n" +
+                        "package cn.microanswer;\r\n" +
                         "\r\n" +
                         "\r\n" +
                         "public class " + className + " {\r\n" +
