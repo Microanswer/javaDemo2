@@ -53,7 +53,7 @@ public class QRCodeDemo extends JFrame implements ActionListener {
         Container contentPane = getContentPane();
 
         resultLabel = new JLabel();
-        resultLabel.setPreferredSize(new Dimension(155, 120));
+        resultLabel.setPreferredSize(new Dimension(200, 300));
         contentPane.add(resultLabel);
 
         textField = new JTextField();

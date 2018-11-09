@@ -1,7 +1,9 @@
 package cn.microanswer;
 
 
-import java.util.Scanner;
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.*;
 
 public class Test25 {
 
@@ -12,65 +14,124 @@ public class Test25 {
      */
     public static void main(String[] args) throws Exception {
 
-        Scanner scanner = new Scanner(System.in);
+        copy2Dir(new FileFilter() {
+            @Override
+            public boolean accept(File pathname) {
 
-        System.out.println("--------------欢迎进入游戏世界--------------");
-        System.out.println("              ******************");
-        System.out.println("                  人机互动猜拳游戏");
-        System.out.println("              ******************");
-        System.out.println();
-        System.out.println("出拳规则：1.剪刀 2.石头 3.布");
-        System.out.println("请选择对方角色（1：刘备 2：孙权 3：曹操）：");
-        String next = scanner.next();
+                String name = pathname.getAbsolutePath().toLowerCase();
+
+                if (
+                        name.endsWith(".jpg") ||
+                                name.endsWith(".png") ||
+                                name.endsWith(".gif") ||
+                                name.endsWith(".bmp")
+                ) {
+                    if (name.endsWith(".gif")) {
+                        return true;
+                    }
+
+                    try {
+                        BufferedImage read = ImageIO.read(pathname);
+                        if (read == null) {
+                            return false;
+                        }
+
+                        boolean b = read.getHeight() > 800 && read.getWidth() > 500;
+                        return b;
+
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+
+
+                }
+
+                return false;
+            }
+        }, "C:\\Users\\Microanswer\\Documents\\Tencent Files\\374288225", "D:\\杂图");
 
     }
 
     /**
-     * 猜拳猜拳， 此处则定义一个 拳 类。
-     * 石头拳、布拳、剪刀拳分别继承并实现这个抽象类。
-     * 其中 isKill 要求各自实现自己的拳种可以打败那种拳。
+     * 将 所有符合过滤器的文件从 fromDir（包括子目录） 复制到 toDir
+     *
+     * @param filter  过滤器
+     * @param fromDir 源目录
+     * @param toDir   目标目录
      */
-    abstract class Quan {
-        /**
-         * 获取结果的方法.
-         * 此方法的实现要求：
-         * 返回是否能够将传入的“拳”打败！
-         *
-         * @param quan 要判断的“拳”
-         * @return 打败了返回 true，没打败返回 false
-         */
-        abstract boolean isKill(Quan quan);
+    public static void copy2Dir(FileFilter filter, String fromDir, String toDir) {
 
-    }
+        try {
+            File fromDirFile = new File(fromDir);
+            if (!fromDirFile.exists()) {
+                throw new Exception("文件夹不存在");
+            }
+            if (!fromDirFile.isDirectory()) {
+                throw new Exception("源目录不能是文件");
+            }
+            if (!fromDirFile.canRead()) {
+                throw new Exception("无权限读取源目录");
+            }
 
-    // 石头拳
-    class ShiTouQuan extends Quan {
+            File[] files = fromDirFile.listFiles(new FileFilter() {
+                @Override
+                public boolean accept(File pathname) {
+                    return filter.accept(pathname) || pathname.isDirectory();
+                }
+            });
 
-        @Override
-        boolean isKill(Quan quan) {
-            // 石头拳可以打败布拳，所以，如果是布拳，则返回胜利
-            return quan instanceof JianDaoQuan;
+            if (files == null) {
+                return;
+            }
+
+            System.out.println("处理文件夹：" + fromDir);
+            for (File f : files) {
+                String canonicalPath = f.getCanonicalPath();
+                if (f.isDirectory()) {
+                    copy2Dir(filter, canonicalPath, toDir);
+                } else {
+                    System.out.println("处理文件：" + canonicalPath);
+                    copy(f, new File(toDir, f.getName()));
+                }
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
-    // 布拳
-    class BuQuan extends Quan {
+    private static void copy(File from, File to) {
 
-        @Override
-        boolean isKill(Quan quan) {
-            // 布拳可以打败石头拳，所以，如果是石头拳则返回胜利。
-            return quan instanceof ShiTouQuan;
+        int count = 0;
+        while (to.exists()) {
+            count++;
+            to = new File(to.getParent(), count + to.getName());
+        }
+
+        BufferedInputStream in = null;
+        BufferedOutputStream out = null;
+        try {
+            in = new BufferedInputStream(new FileInputStream(from));
+            out = new BufferedOutputStream(new FileOutputStream(to));
+
+            byte[] data = new byte[4096];
+            int size;
+
+            while ((size = in.read(data)) != -1) {
+                out.write(data, 0, size);
+            }
+
+            out.flush();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                if (in != null) in.close();
+                if (out != null) out.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
     }
-
-    // 剪刀拳
-    class JianDaoQuan extends Quan {
-
-        @Override
-        boolean isKill(Quan quan) {
-            // 剪刀拳可以打败布拳，所以，如果是布拳则返回胜利。
-            return quan instanceof BuQuan;
-        }
-    }
-
 }
