@@ -42,7 +42,7 @@ public class QRCodeDemo extends JFrame implements ActionListener {
                 WIDTH, HEIGHT
         );
 
-        setResizable(false);
+        // setResizable(false);
         setLayout(new FlowLayout(FlowLayout.CENTER, 10, 10));
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
 
