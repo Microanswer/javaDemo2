@@ -3,9 +3,9 @@ package cn.microanswer;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.LinkedList;
 
 public class Test26 {
 
@@ -15,14 +15,13 @@ public class Test26 {
      * @date 2018年11月12日 10:28:30
      */
     public static void main(String[] args) throws Exception {
-
-
-        printHDS(8);
+        printHDS(9);
     }
 
 
     // 先预存所有 1~9 这几个数每个数的 n 次方的值。
     private static HashMap<String, BigDecimal> numbersMap = null;
+    private static String[] STRS = "123456789".split("");
     private final static int STEP_GOING = 1;
     private final static int STEP_BACK = 2;
 
@@ -38,46 +37,71 @@ public class Test26 {
         long startTime = System.currentTimeMillis();
 
         numbersMap = new HashMap<>();
-        for (int i = 0; i < n; i++) {
+        for (int i = 0; i < 10; i++) {
             numbersMap.put(String.valueOf(i), new BigDecimal(i).pow(n));
         }
 
         // 然后在这些数中循环排列组合，找到符合要求的花朵数。
-        MyNumber[] mynumbers = new MyNumber[n];
         String[] numbers = new String[n];
-        int position = 0;
+        LinkedList<MyNumber> tryList = new LinkedList<>();
         int step = STEP_GOING;
-        while (true) {
+        do {
 
-            MyNumber mn = null;
+            MyNumber myn = null;
 
             if (step == STEP_GOING) {
-                mn = mynumbers[position];
-                if (mn == null) {
-                    mn = new MyNumber(position);
-                    mynumbers[position] = mn;
+                myn = getNextPosition(numbers);
+                if (myn == null) {
+                    myn = tryList.getLast();
                 }
-            } else if (step == STEP_BACK) {
-                mn = mynumbers[--position];
-            }
-
-            if (mn.hasNext()) {
-                numbers[mn.index] = mn.nexNumber();
-                step = STEP_GOING;
             } else {
-                // 这个位置没有可填写的数了，回退一位。
-                mn = new MyNumber(mn.index);
-                mynumbers[mn.index] = mn;
-                step = STEP_BACK;
+                myn = tryList.getLast();
             }
 
 
-            if (isHDS(numbers)) {
-                System.out.println("找到一个花朵数：" + array2String(numbers));
+            if (step == STEP_GOING) {
+                String s = myn.nexNumber();
+                if (s == null) { // 此位置所有数都尝试过了
+                    numbers[myn.index] = null;
+                    tryList.removeLast();
+                    step = STEP_BACK;
+                } else {
+                    numbers[myn.index] = s;
+                    if (!tryList.contains(myn)) {
+                        tryList.add(myn);
+                    }
+                }
+
+            } else {
+                String s = myn.nexNumber();
+                if (s == null) {
+                    numbers[myn.index] = null;
+                    tryList.removeLast();
+                    step = STEP_BACK;
+                } else {
+                    numbers[myn.index] = s;
+                    step = STEP_GOING;
+                }
+            }
+
+
+            // if (isHDS(numbers)) {
+            //     System.out.println("找到一个花朵数：" + array2String(numbers));
+            //     count++;
+            // }
+
+        } while (tryList.size() != 0);
+
+        System.out.println(String.format("在所有%d位数的正整数中找到%d个花朵数,耗时：%d秒", n, count, ((System.currentTimeMillis() - startTime) / 1000)));
+    }
+
+    private static MyNumber getNextPosition(String[] numbers) {
+        for (int i = 0; i < numbers.length; i++) {
+            if (numbers[i] == null) {
+                return new MyNumber(i);
             }
         }
-
-        // System.out.println(String.format("在所有%d位数的正整数中找到%d个花朵数,耗时：%d秒", n, count, ((System.currentTimeMillis() - startTime) / 1000)));
+        return null;
     }
 
     /**
@@ -86,24 +110,25 @@ public class Test26 {
      * @param numbers 数组
      * @return true 如果是， 否则返回 false
      */
-    static boolean isHDS(String[] numbers) {
-        BigDecimal number = new BigDecimal(array2String(numbers));
-        BigDecimal result = new BigDecimal("0");
+    private static boolean isHDS(String[] numbers) {
+        BigDecimal result = BigDecimal.ZERO;
+        StringBuilder s1 = new StringBuilder();
         for (String s : numbers) {
             if (s == null) {
                 return false;
             }
             result = result.add(numbersMap.get(s));
+            s1.append(s);
         }
-        return number.compareTo(result) == 0;
+        return s1.toString().equals(result.toPlainString());
     }
 
-    static String array2String(Object[] array) {
-        StringBuilder stringBuilder = new StringBuilder();
-        for (Object o : array) {
-            stringBuilder.append(o.toString());
+    private static String array2String(Object[] array) {
+        StringBuilder r = new StringBuilder();
+        for (Object sa : array) {
+            r.append(sa);
         }
-        return stringBuilder.toString();
+        return r.toString();
     }
 
     /**
@@ -116,9 +141,7 @@ public class Test26 {
         MyNumber(int index) {
             this.index = index;
             numbers = new ArrayList<>();
-            for (int i = 0; i < 10; i++) {
-                numbers.add(String.valueOf(i));
-            }
+            Collections.addAll(numbers, STRS);
         }
 
         /**
@@ -127,14 +150,21 @@ public class Test26 {
          * @return 数字。
          */
         String nexNumber() {
+            if (!hasNext()) {
+                return null;
+            }
             return numbers.remove(0);
         }
 
         // 是否还有可尝试的数字
         boolean hasNext() {
-            return numbers.size() > 0;
+            return !numbers.isEmpty();
         }
 
+        @Override
+        public String toString() {
+            return "index:" + index + ", numbers:" + this.numbers;
+        }
     }
 
 }
