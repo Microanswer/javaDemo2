@@ -132,7 +132,11 @@ public class Client extends Thread {
         return userNamme;
     }
 
-    void sendMsg(Msg msg, Msg.SendListener sendListener) {
+    void sendMsg(Msg msg) {
+        sendMsg(msg, null);
+    }
+
+    void sendMsg(Msg msg, SendListener sendListener) {
         Task.TaskHelper.getInstance().run(new Task.ITask<Msg, Msg>() {
             @Override
             public Msg getParam() {
@@ -175,6 +179,24 @@ public class Client extends Thread {
         void onError(Client client, Exception e);
 
         void onMsg(Client client, Msg msg);
+    }
+
+    interface SendListener {
+        // 消息发送完成回调。
+        void onEnd(Msg msg);
+    }
+
+    public static Msg CreateSystemMsg(int type) {
+        return CreateSystemMsg(type, String.valueOf(type));
+    }
+
+    public static Msg CreateSystemMsg(int type, String value) {
+        try {
+            return new Msg(type, "0", "0", value);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 }
 

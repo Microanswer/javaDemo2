@@ -50,7 +50,6 @@ public class Server extends Thread {
                     client.setClientListener(clientListener);
                     client.start(); // 保持对该客户端的活跃状态
 
-
                 } catch (Exception e) {
                     System.out.println(e.getMessage());
                 }
@@ -88,7 +87,7 @@ public class Server extends Thread {
         public void onConneted(Client client, String host, int port) {
 
             // 当客户端连接上，则下发客户端应该使用的名称
-            client.sendMsg(Msg.CreateSystemMsg(MsgHead.TYPE_SYSTEM_SETNAME, client.getUserNamme()), null);
+            client.sendMsg(Client.CreateSystemMsg(MsgHead.TYPE_SYSTEM_SETNAME, client.getUserNamme()));
 
             if (serverListener != null) {
                 serverListener.onClientConnted(client, client.getUserNamme());

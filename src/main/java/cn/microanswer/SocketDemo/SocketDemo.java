@@ -1,20 +1,7 @@
 package cn.microanswer.SocketDemo;
 
 import javax.swing.*;
-import javax.swing.border.AbstractBorder;
-import javax.swing.event.ListSelectionEvent;
-import javax.swing.event.ListSelectionListener;
-import javax.swing.filechooser.FileFilter;
 import java.awt.*;
-import java.awt.event.*;
-import java.awt.image.BufferedImage;
-import java.io.*;
-import java.net.InetAddress;
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.net.URI;
-import java.text.SimpleDateFormat;
-import java.util.*;
 
 /**
  * 使用 Socket 实现的简易聊天 Demo
