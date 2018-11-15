@@ -75,7 +75,7 @@ public class Constant {
     /**
      * 客户端窗口宽度
      */
-    static final int CLIENT_WINDOW_WIDTH = 400;
+    static final int CLIENT_WINDOW_WIDTH = 550;
     /**
      * 客户端窗口高度
      */
@@ -117,7 +117,7 @@ public class Constant {
      * @return true 如果为空， 否则false
      */
     static boolean isEmpty(String str) {
-        return str == null || str.length() == 0;
+        return Utils.isStringEmpty(str);
     }
 
     /**
@@ -128,29 +128,7 @@ public class Constant {
      * @param length       长度
      */
     static void streamCopy(InputStream inputStream, OutputStream outputStream, long length) throws Exception {
-        long leftSize = length; // 剩下还有多少没有读取
-        int eachSize = 4096;
-
-        byte data[] = new byte[eachSize];
-
-        // 还有剩下的没读取，就一直读取
-        while (leftSize > 0) {
-
-            int size;
-
-            if (leftSize >= eachSize) {
-                size = inputStream.read(data, 0, eachSize);
-                leftSize -= size;
-            } else {
-                // 剩下的数据量已近较少了
-                size = inputStream.read(data, 0, (int) leftSize);
-                leftSize = 0;
-            }
-
-            outputStream.write(data, 0, size);
-        }
-
-        outputStream.flush();
+        Utils.streamCopy(inputStream, outputStream, length);
     }
 
     /**
@@ -159,19 +137,8 @@ public class Constant {
      * @param f 要删除的目录或文件
      */
     static void deleteFile(File f) {
-        if (f.isDirectory()) {
-            File[] files = f.listFiles();
-            if (files != null && files.length > 0) {
-                for (File ff : files) {
-                    deleteFile(ff);
-                }
-            }
-        }
-        boolean delete = f.delete();
-        if (delete) {
-            System.out.println(f.getAbsolutePath() + " 删除成功");
-        } else {
-            System.err.println(f.getAbsolutePath() + " 删除失败");
-        }
+        Utils.deleteFile(f);
     }
+
+
 }

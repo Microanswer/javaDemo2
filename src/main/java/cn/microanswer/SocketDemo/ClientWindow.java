@@ -1,8 +1,10 @@
 package cn.microanswer.SocketDemo;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
+
 import javax.swing.*;
-import javax.swing.event.ListSelectionEvent;
-import javax.swing.event.ListSelectionListener;
 import javax.swing.filechooser.FileFilter;
 import java.awt.*;
 import java.awt.event.*;
@@ -19,7 +21,6 @@ import java.util.Locale;
  * 客户端窗口
  */
 class ClientWindow extends JFrame {
-    private static final String ACTION_COMMAND_SEE_ALLONLINE = "seeallonline";
     private static final String ACTION_COMMAND_SEND = "send";
     private static final String ACTION_COMMAND_CLEAR = "clear";
     private static final String ACTION_COMMAND_CHOOSE_PIC = "choosepic";
@@ -30,37 +31,15 @@ class ClientWindow extends JFrame {
 
     private JLabel userNameLabel;
     private JTabbedPane jTabbedPane;
-    private ArrayList<String> talkingUsers; // 正在聊天的队列
+    private ArrayList<Room> talkingRooms; // 正在聊天的聊天室队列
     // 登录弹出框里面的控件
     private JDialog dialog;
     private JButton buttonLogin;
     // 查看所有在线人员的弹出框
-    private JDialog allUserDialog;
-    private JList<String> allUserList;
+    private JList<JSONObject> allUserList; // 显示所有在线的人的列表
+    private JSONArray allOnlines; // 保存所有在线的人， 每次点击获取在线人员按钮时，都会重新赋值。
     // 修改我的名称按钮
     private JLabel modifyMyName;
-
-    /**
-     * 界面中按钮监听器。
-     */
-    private ActionListener actionListener = new ActionListener() {
-        @Override
-        public void actionPerformed(ActionEvent e) {
-            Object source = e.getSource();
-            if (source instanceof Component) {
-                Component component = (Component) source;
-                if (!component.isEnabled()) {
-                    return;
-                }
-            }
-            String actionCommand = e.getActionCommand();
-
-            if (ACTION_COMMAND_SEE_ALLONLINE.equals(actionCommand)) {
-                // 点击查看所有人员
-                showAllOnline();
-            }
-        }
-    };
 
     ClientWindow(Toolkit toolkit) {
         super(Constant.CLIENT_WINDOW_TITLE);
@@ -109,12 +88,15 @@ class ClientWindow extends JFrame {
         setResizable(false);
 
         // 弹出连接服务端的信息录入窗口
-        showConnectDialog();
+        showLoginDialog();
 
-        talkingUsers = new ArrayList<>();
+        talkingRooms = new ArrayList<>();
     }
 
-    void showConnectDialog() {
+    /**
+     * 显示登录服务器弹出框
+     */
+    private void showLoginDialog() {
 
         dialog = new JDialog(ClientWindow.this, Constant.SERVER_INFO);
         dialog.setResizable(false);
@@ -130,9 +112,9 @@ class ClientWindow extends JFrame {
         });
         Dimension screenSize = toolkit.getScreenSize();
         dialog.setBounds(
-                (int) Math.round((screenSize.getWidth() - 200) / 2f),
+                (int) Math.round((screenSize.getWidth() - 240) / 2f),
                 (int) Math.round((screenSize.getHeight() - 140) / 2f),
-                200,
+                240,
                 140
         );
         Container contentPane = dialog.getContentPane();
@@ -140,13 +122,13 @@ class ClientWindow extends JFrame {
         JLabel tipLabel = new JLabel("服务器url：");
         contentPane.add(tipLabel);
         JTextField urlField = new JTextField();
-        urlField.setPreferredSize(new Dimension(80, 20));
+        urlField.setPreferredSize(new Dimension(100, 20));
         urlField.setText(Constant.CLIENT_DEFALUT_SERVER_HOST);
         contentPane.add(urlField);
         JLabel tipPortLabel = new JLabel("端  口 号：");
         contentPane.add(tipPortLabel);
         JTextField portField = new JTextField();
-        portField.setPreferredSize(new Dimension(80, 20));
+        portField.setPreferredSize(new Dimension(100, 20));
         portField.setText(Constant.SERVER_PORT + "");
         contentPane.add(portField);
         buttonLogin = new JButton(" 登入 ");
@@ -178,7 +160,7 @@ class ClientWindow extends JFrame {
      * @param url  主机地址
      * @param port 端口号
      */
-    void initClient(String url, int port) {
+    private void initClient(String url, int port) {
         client = new Client(url, port);
         client.setClientListener(new MClientListener());
         client.start(); // 开启客户端
@@ -187,19 +169,14 @@ class ClientWindow extends JFrame {
     /**
      * 初始化客户端界面
      */
-    void initUI() {
+    private void initUI() {
         Container contentPane = ClientWindow.this.getContentPane();
 
-        // NORTH 方向显示正在和谁聊天和我的信息和查看所有在线人员按钮
+        // NORTH 方向显示我的信息
         JPanel northPanel = new JPanel();
         northPanel.setLayout(new FlowLayout(FlowLayout.LEFT, 0, 10));
 
-        JButton showBtn = new JButton("在线人员");
-        showBtn.setActionCommand(ACTION_COMMAND_SEE_ALLONLINE);
-        showBtn.addActionListener(actionListener);
-
-
-        userNameLabel = new JLabel("我的名称：" + client.getUserNamme() + " ");
+        userNameLabel = new JLabel("我的名称：" + client.getClientNamme() + " ");
         userNameLabel.setBorder(BorderFactory.createEmptyBorder(0, 9, 0, 0));
         modifyMyName = new JLabel("修改");
         modifyMyName.setEnabled(false); // 在服务端返回了客户端初始名称后，才可以修改
@@ -217,7 +194,6 @@ class ClientWindow extends JFrame {
             }
         });
 
-        northPanel.add(showBtn);
         northPanel.add(userNameLabel);
         northPanel.add(modifyMyName);
         contentPane.add(northPanel, BorderLayout.NORTH);
@@ -225,12 +201,17 @@ class ClientWindow extends JFrame {
         // 中间显示 tab面板，显示多个聊天界面
         jTabbedPane = new JTabbedPane();
         contentPane.add(jTabbedPane, BorderLayout.CENTER);
+
+        // 右边显示所有在线人员列表
+        allUserList = new JList<>();
+        JScrollPane scrollPane = new JScrollPane(allUserList);
+        contentPane.add(scrollPane, BorderLayout.EAST);
     }
 
     /**
      * 弹出修改姓名的弹出框
      */
-    void showChangeMyNameDialog() {
+    private void showChangeMyNameDialog() {
         JDialog dialog = new JDialog(ClientWindow.this, "修改名称");
         dialog.setResizable(false);
         dialog.setAutoRequestFocus(true);
@@ -274,8 +255,7 @@ class ClientWindow extends JFrame {
                         return;
                     }
 
-                    // 向服务端发起更名请求， 服务端接收到后会更新服务端的数据。
-                    client.sendMsg(Client.CreateSystemMsg(MsgHead.TYPE_SYSTEM_SETNAME, name));
+                    client.setClientName(name);
                     setLocalUserName(name);
                     dialog.dispose();
                 }
@@ -290,37 +270,39 @@ class ClientWindow extends JFrame {
      *
      * @param msg 消息内容
      */
-    void onGetMsg(Msg msg) {
+    private void onGetMsg(Msg msg) {
         String fromName = msg.getMsgHead().getFromName();
-        int index = talkingUsers.indexOf(fromName);
-        if (index == -1) {
-            // 还没有与这位好友的聊天面板创建，立刻创建。
-            TalkPanel talkPanel = new TalkPanel(fromName);
-            talkPanel.onMsg(msg);
-            jTabbedPane.addTab(fromName, talkPanel);
-            jTabbedPane.setTabComponentAt(jTabbedPane.indexOfComponent(talkPanel), getTabTitle(fromName));
-            talkingUsers.add(fromName);
+        String fromId = msg.getMsgHead().getFromClientId();
+        String roomId = msg.getMsgHead().getToClientId();
+        String roomName = msg.getMsgHead().getToName();
+        Room room = new Room(roomId, roomName);
+        // 如果列队中有这个聊天室，只需要拿到这个聊天室，然后向聊天室中分发这条消息即可。
+        Room.Member member = new Room.Member(fromId, fromName);
+        if (talkingRooms.contains(room)) {
+            room = talkingRooms.get(talkingRooms.indexOf(room));
         } else {
-            // 有
-            TalkPanel talkPanel = (TalkPanel) jTabbedPane.getComponentAt(index);
-            talkPanel.onMsg(msg);
+            // 聊天列队中没有这个聊天室，则创建出这个聊天室
+            room.setSelfMember(new Room.Member(client.getClientId(), client.getClientNamme()));
+            room.addOtherMember(member);
+            room.setRoomListener(new TalkPanel(room));
         }
+        // 检查聊天室中是否有发件人的信息，如果没有，则将其加入
+        if (!room.getOtherMember().contains(member)) {
+            room.getOtherMember().add(member);
+        }
+
+        room.dispatchMsg(msg);
     }
 
     /**
-     * 告知某一条消息发送成功了
+     * 设置我的名称
      *
-     * @param msgId 消息id
+     * @param name 新名称
      */
-    void onMsgSendSuccess(String msgId) {
-        System.out.println("消息：" + msgId + " 发送成功");
-    }
-
-    void setLocalUserName(String name) {
-        client.setUserNamme(name);
+    private void setLocalUserName(String name) {
         ClientWindow.this.setTitle(Constant.CLIENT_WINDOW_TITLE + "(" + name + ")");
         if (userNameLabel != null) {
-            userNameLabel.setText("我的名称：" + client.getUserNamme() + " ");
+            userNameLabel.setText("我的名称：" + name);
             userNameLabel.invalidate();
         }
         if (modifyMyName != null) {
@@ -328,30 +310,11 @@ class ClientWindow extends JFrame {
         }
     }
 
-    /**
-     * 新建聊天的对象或选择到某一个
-     *
-     * @param fromName 消息来自的名称
-     */
-    void setTalkUser(String fromName) {
-        int index = talkingUsers.indexOf(fromName);
-        if (index == -1) {
-            // 还没有与这位好友的聊天面板创建，立刻创建。
-            TalkPanel talkPanel = new TalkPanel(fromName);
-            jTabbedPane.addTab(fromName, talkPanel);
-            jTabbedPane.setTabComponentAt(jTabbedPane.indexOfComponent(talkPanel), getTabTitle(fromName));
-            jTabbedPane.setSelectedComponent(talkPanel);
-            talkingUsers.add(fromName);
-        } else {
-            // 有，则直接定位到对应好友
-            jTabbedPane.setSelectedIndex(index);
-        }
-    }
 
-    Component getTabTitle(String fromname) {
+    Component getTabTitle(String tabName) {
         JPanel jPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
         jPanel.setBackground(new Color(0, 0, 0, 0));
-        JLabel jLabel = new JLabel(fromname);
+        JLabel jLabel = new JLabel(tabName);
         jLabel.setBorder(BorderFactory.createEmptyBorder(0, 3, 0, 6));
         jLabel.setEnabled(false);
         jLabel.setFocusable(false);
@@ -368,7 +331,7 @@ class ClientWindow extends JFrame {
                 if (i == 0) {
                     int i1 = jTabbedPane.indexOfTabComponent(jPanel);
                     jTabbedPane.removeTabAt(i1);
-                    talkingUsers.remove(i1);
+                    talkingRooms.remove(i1);
                 }
             }
         });
@@ -378,85 +341,37 @@ class ClientWindow extends JFrame {
     }
 
     /**
-     * 显示所有在线的客户端
-     */
-    void showAllOnline() {
-        allUserDialog = new JDialog(ClientWindow.this, Constant.ALL_ONLINE_USER);
-        allUserDialog.setResizable(false);
-        allUserDialog.setAutoRequestFocus(true);
-        allUserDialog.setModal(true);
-        allUserDialog.setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
-        allUserDialog.addWindowListener(new WindowAdapter() {
-            @Override
-            public void windowClosing(WindowEvent e) {
-                allUserDialog.dispose();
-            }
-        });
-        allUserDialog.setBounds(
-                Math.round((ClientWindow.this.getWidth() - 100) / 2f + getX()),
-                Math.round((ClientWindow.this.getHeight() - 200) / 2f + getY()),
-                100,
-                200
-        );
-        allUserList = new JList<>();
-        allUserList.getSelectionModel().setSelectionMode(ListSelectionModel.SINGLE_SELECTION); // 只能单选
-        allUserList.addListSelectionListener(new ListSelectionListener() {
-            @Override
-            public void valueChanged(ListSelectionEvent e) {
-                if (e.getValueIsAdjusting()) {
-                    String selectedValue = allUserList.getSelectedValue();
-                    setTalkUser(selectedValue);
-                    // 关闭弹窗口
-                    allUserDialog.dispose();
-                }
-            }
-        });
-        JScrollPane scrollPane = new JScrollPane(allUserList);
-
-        Container contentPane = allUserDialog.getContentPane();
-        contentPane.setLayout(new BorderLayout());
-        contentPane.add(scrollPane, BorderLayout.CENTER);
-
-        // 向服务器发出获取所有用户信息的请求
-        client.sendMsg(Client.CreateSystemMsg(MsgHead.TYPE_SYSTEM_REQUEST_ALL_USER));
-    }
-
-    /**
-     * 当请求获取所有在线的人员时，服务器返回数据会调用此方法。
+     * 服务器告知所有在线的人员时，会调用此方法。
      *
-     * @param data 所有数据，以逗号分开
+     * @param res 所有数据
      */
-    void onAllOnlieUserGeted(String data) {
-        if (!Constant.isEmpty(data)) {
+    private void onAllOnlieUserGeted(JSONArray res) {
+        if (!Utils.isListEmpty(res)) {
             // 排除自己
-            data = data.trim().replace(", ", ",").replace(client.getUserNamme(), "");
-            String[] split = data.split(",");
-            ArrayList<String> res = new ArrayList<>();
-            for (String s : split) {
-                if (!Constant.isEmpty(s)) {
-                    res.add(s);
+            for (int i = 0; i < res.size(); i++) {
+                JSONObject jsonObject = res.getJSONObject(i);
+                if (client.getClientNamme().equals(jsonObject.getString("name"))) {
+                    res.remove(i);
+                    break;
                 }
             }
-            if (res.size() > 0) {
-                String result[] = new String[res.size()];
-                result = res.toArray(result);
-                allUserList.setListData(result);
-                allUserList.invalidate();
-                allUserDialog.setVisible(true);
-                return;
-            }
+
+            allOnlines = res;
+
+            JSONObject datas[] = new JSONObject[allOnlines.size()];
+            allOnlines.toArray(datas);
+            allUserList.setListData(datas);
+            allUserList.updateUI();
         }
-        allUserDialog.dispose();
-        JOptionPane.showMessageDialog(ClientWindow.this, Constant.NO_ONLINE_USER, Constant.TIP, JOptionPane.INFORMATION_MESSAGE);
     }
 
     /**
      * 聊天框， 一个人可以和多个人进行对话，每个人会产生一个聊天框。
      */
-    class TalkPanel extends JPanel {
+    class TalkPanel extends JPanel implements Room.RoomListener {
 
-        // 与之谈话的对方的名称。
-        String targetUserName;
+        // 聊天室对象
+        private Room room;
 
         // 消息输入框
         private JTextArea textArea;
@@ -509,10 +424,10 @@ class ClientWindow extends JFrame {
             }
         };
 
-        TalkPanel(String targetUserName) {
+        TalkPanel(Room room) {
             super(new BorderLayout());
 
-            this.targetUserName = targetUserName;
+            this.room = room;
             setBackground(Color.WHITE);
 
             this.initUI();
@@ -574,7 +489,13 @@ class ClientWindow extends JFrame {
          */
         void sendFile(File f, boolean isPic) {
             try {
-                Msg msg = new Msg(isPic ? MsgHead.TYPE_PIC : MsgHead.TYPE_FILE, client.getUserNamme(), targetUserName, f);
+                Msg msg = new Msg(
+                        isPic ? MsgHead.TYPE_PIC : MsgHead.TYPE_FILE,
+                        client.getClientId(),
+                        client.getClientNamme(),
+                        room.getId(),
+                        room.getName(),
+                        f);
                 client.sendMsg(msg, new Client.SendListener() {
                     @Override
                     public void onEnd(Msg msg) {
@@ -586,12 +507,22 @@ class ClientWindow extends JFrame {
             }
         }
 
+        /**
+         * 发送消息框中的消息。
+         */
         void sendMsg() {
-            if (textArea != null && !Constant.isEmpty(targetUserName)) {
+            if (textArea != null) {
                 String text = textArea.getText();
                 if (!Constant.isEmpty(text) && !Constant.isEmpty(text.trim())) {
                     try {
-                        Msg msg = new Msg(MsgHead.TYPE_TXT, client.getUserNamme(), targetUserName, text);
+                        Msg msg = new Msg(
+                                MsgHead.TYPE_TXT,
+                                client.getClientId(),
+                                client.getClientNamme(),
+                                room.getId(),
+                                room.getName(),
+                                text
+                        );
                         client.sendMsg(msg, new Client.SendListener() {
                             @Override
                             public void onEnd(Msg msg) {
@@ -599,20 +530,10 @@ class ClientWindow extends JFrame {
                                 onMsg(msg);
                             }
                         });
-                        return;
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
                 }
-            }
-            if (Constant.isEmpty(targetUserName)) {
-                JOptionPane.showMessageDialog(
-                        ClientWindow.this,
-                        "请先选择聊天对象",
-                        Constant.TIP,
-                        JOptionPane.WARNING_MESSAGE
-                );
-
             }
         }
 
@@ -624,15 +545,32 @@ class ClientWindow extends JFrame {
             scrollPane.getViewport().setViewPosition(new Point(0, Integer.MAX_VALUE));
             TalkPanel.this.grabFocus();
         }
+
+        @Override
+        public void onRoomGetMsg(Room room, Msg msg) {
+            Container parent = getParent();
+            // 聊天框还没有显示到界面，进行显示操作。
+            if (null == parent) {
+                jTabbedPane.addTab(room.getName(), this);
+                jTabbedPane.setTabComponentAt(jTabbedPane.indexOfComponent(this), getTabTitle(room.getName()));
+                jTabbedPane.setSelectedComponent(this);
+            }
+            onMsg(msg);
+        }
     }
 
     class MClientListener implements Client.ClientListener {
         @Override
         public void onConneted(Client client, String host, int port) {
+            System.out.println("客户端连接成功啦");
             dialog.dispose();
             initUI();
             setVisible(true);
-            System.out.println("客户端连接成功啦");
+        }
+
+        @Override
+        public void onNamed(String clientName, String clientId) {
+            setLocalUserName(clientName);
         }
 
         @Override
@@ -663,13 +601,11 @@ class ClientWindow extends JFrame {
 
                 // 服务器返回所有在线的成员。
                 if (msgType == MsgHead.TYPE_SYSTEM_REQUEST_ALL_USER) {
-                    String txtBody = msg.getTxtBody();
-                    onAllOnlieUserGeted(txtBody);
+                    String text = msg.getText();
 
-                    // 服务器返回了此客户端的名称
-                } else if (msgType == MsgHead.TYPE_SYSTEM_SETNAME) {
-                    String name = msg.getTxtBody();
-                    setLocalUserName(name);
+                    JSONArray objects = JSON.parseArray(text);
+
+                    onAllOnlieUserGeted(objects);
                 }
 
                 // 这个范围内的消息，属于用户消息
@@ -678,11 +614,6 @@ class ClientWindow extends JFrame {
                 onGetMsg(msg);
 
                 // 通知类消息
-            } else if (100 < msgType && msgType <= 200) {
-                if (msgType == MsgHead.TYPE_NOTIFY_MSG_SUCCESS) {
-                    // 通知某一条消息发送成功
-                    onMsgSendSuccess(msg.getTxtBody());
-                }
             }
 
         }
@@ -727,7 +658,7 @@ class ClientWindow extends JFrame {
             setBackground(Color.WHITE);
             this.index = index;
             this.msg = msg;
-            this.isme = msg.getMsgHead().getFromName().equals(client.getUserNamme());
+            this.isme = msg.getMsgHead().getFromClientId().equals(client.getClientId());
             simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss", Locale.CHINA);
 
             initView();
@@ -739,7 +670,7 @@ class ClientWindow extends JFrame {
             infoPanel.setBackground(Color.WHITE);
 
             // 消息发出者
-            JLabel fromLabel = new JLabel("<html><b>" + (isme ? "我说" : msg.getMsgHead().getFromName()) + "</b></html>");
+            JLabel fromLabel = new JLabel("<html><b>" + (isme ? "我说" : msg.getMsgHead().getFromClientId()) + "</b></html>");
             fromLabel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
             if (!isme) {
                 fromLabel.setForeground(Color.BLUE);
@@ -760,7 +691,7 @@ class ClientWindow extends JFrame {
             int type = msg.getMsgHead().getMsgType();
 
             if (type == MsgHead.TYPE_TXT) {
-                JLabel txtLabel = new JLabel("<html><p>" + msg.getTxtBody() + "</p></html>");
+                JLabel txtLabel = new JLabel("<html><p>" + msg.getText() + "</p></html>");
                 txtLabel.setBorder(BorderFactory.createEmptyBorder(0, 5, 2, 5));
                 add(txtLabel);
             } else if (type == MsgHead.TYPE_PIC) {
@@ -808,7 +739,7 @@ class ClientWindow extends JFrame {
 
                 add(filePanel, BorderLayout.CENTER);
             } else {
-                JLabel txtLabel = new JLabel(msg.getTxtBody());
+                JLabel txtLabel = new JLabel(msg.getText());
                 txtLabel.setBorder(BorderFactory.createEmptyBorder(0, 5, 2, 5));
                 add(txtLabel, BorderLayout.CENTER);
             }

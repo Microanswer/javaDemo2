@@ -1,113 +1,170 @@
 package cn.microanswer.SocketDemo;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
+
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.Socket;
-import java.util.UUID;
 
 /**
  * 客户端管理类
  */
 public class Client extends Thread {
+
+    // 保存套接字引用。
     private Socket socket;
+
+    // 来自 socket 连接成功后获取到的输出流。
     private BufferedOutputStream outputStream;
-    private boolean isReady;
+
+    // 信息状态监听器。
     private ClientListener clientListener;
 
-    private String host;
-    private int port;
-    private String userNamme = "";
+    private String clientNamme; // 客户名称。
+    private String clientId; // 客户唯一标识。
+    private String host; // 服务机地址。
+    private int port; // 服务机端口。
 
+    /**
+     * 使用提供的主机地址和端口号初始化一个客户端。
+     *
+     * @param host 主机地址
+     * @param port 端口号
+     */
     Client(String host, int port) {
         this.host = host;
         this.port = port;
     }
 
+    /**
+     * 使用 已有的套接字初始化一个客户端。 此构造函数通常用于服务端accept到一个客户连接时使用。
+     *
+     * @param socket 套接字客户端。
+     */
     Client(Socket socket) {
         this.socket = socket;
         InetAddress address = this.socket.getInetAddress();
         host = address.getHostName();
         port = socket.getPort();
-        isReady = true;
-        userNamme = "User-" + UUID.randomUUID().toString().substring(0, 4);
     }
 
-    public void setClientListener(ClientListener clientListener) {
+    /**
+     * 设置客户端监听器。
+     *
+     * @param clientListener 监听器
+     */
+    public final void setClientListener(ClientListener clientListener) {
         this.clientListener = clientListener;
     }
 
     @Override
-    public void run() {
+    public final void run() {
         super.run();
+
+        // 如果socket 为空， 则是通过 主机地址 和 端口号 进行初始化的，此时进行连接对应主机操作。
         if (socket == null) {
             try {
                 socket = new Socket(host, port);
-                isReady = true;
             } catch (Exception e) {
-                if (clientListener != null) {
-                    clientListener.onError(this, e);
-                }
+                // 抓取出错信息抛出，并同时打印到控制台。
+                e.printStackTrace();
+
+                // 调起错误监听
+                onError(e);
+                // 构建套接字的时候就出错了，以后也没法继续运行。调起生命周期结束方法。
+                onDisConn();
                 return;
             }
         }
-        if (isReady) {
-            InputStream inputStream = null;
 
-            try {
-                // 获取输出流
-                outputStream = new BufferedOutputStream(socket.getOutputStream());
+        // 创建输入流引用。
+        InputStream inputStream = null;
 
-                if (clientListener != null) {
-                    clientListener.onConneted(this, host, port);
-                }
+        try {
+            // 获取输出流
+            outputStream = new BufferedOutputStream(socket.getOutputStream());
 
-                // 读取输入流，获取消息信息。
-                inputStream = socket.getInputStream();
-                BufferedInputStream bufferedInputStream = new BufferedInputStream(inputStream);
+            // 调起监听连接成功监听。
+            // （可能有在 onConneted 方法中向服务端发出消息的需求，所以，此方法的调起前要初始化好输出流。）
+            onConneted(host, port);
 
-                while (socket.isConnected() && !socket.isClosed()) {
-                    try {
-                        Msg msg = new Msg(bufferedInputStream);
-                        onMsg(msg);
-                    } catch (Exception e) {
-                        String msg = e.getMessage();
-                        if (Constant.isEmpty(msg) || msg.contains("Connection reset") || msg.contains("Socket closed")) {
-                            // 因客户端或服务端强制关闭，导致链接重置或关闭。
-                            System.out.println("连接被关闭");
-                            break;
-                        } else {
-                            e.printStackTrace();
-                            throw e;
-                        }
-                    }
-                }
-            } catch (Exception e) {
-                if (clientListener != null) {
-                    clientListener.onError(this, e);
-                } else {
-                    e.printStackTrace();
-                }
-            } finally {
+            // 循环读取输入流，获取消息信息。
+            inputStream = new BufferedInputStream(socket.getInputStream());
+            while (socket.isConnected() && !socket.isClosed()) {
                 try {
-                    if (inputStream != null)
-                        inputStream.close();
-                    outputStream.flush();
-                    outputStream.close();
+                    onMsg(new Msg(inputStream));
                 } catch (Exception e) {
                     e.printStackTrace();
-                }
-
-                if (clientListener != null) {
-                    clientListener.onDisConn(this);
+                    onError(e);
+                    break;
                 }
             }
+        } catch (Exception e) {
+            e.printStackTrace();
+            onError(e);
+        } finally {
+            try {
+                if (inputStream != null) inputStream.close();
+                outputStream.flush();
+                outputStream.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+            onDisConn();
+        }
+    }
+
+    public String getClientNamme() {
+        return clientNamme;
+    }
+
+    public String getClientId() {
+        return clientId;
+    }
+
+    void onError(Exception e) {
+        if (clientListener != null) clientListener.onError(this, e);
+    }
+
+    void onDisConn() {
+        if (clientListener != null) clientListener.onDisConn(this);
+    }
+
+    void onConneted(String host, int port) {
+        if (clientListener != null) {
+            clientListener.onConneted(this, host, port);
+        }
+    }
+
+    void onNamed(){
+        if (clientListener!=null) {
+            clientListener.onNamed(this, clientNamme, clientId);
         }
     }
 
     void onMsg(Msg msg) {
+
+        int msgType = msg.getMsgHead().getMsgType();
+
+        // 接收到初始化客户端id和名称的消息。该消息为底层消息。不暴露给外部。
+        if (msgType == MsgHead.TYPE_SYSTEM_SETNAME_ID) {
+            String text = msg.getText();
+            JSONObject object = JSON.parseObject(text);
+            if (!Utils.isStringEmpty(object.getString("name"))) {
+                clientNamme = object.getString("name");
+            }
+            if (!Utils.isStringEmpty(object.getString("id"))) {
+                clientId = object.getString("id");
+            }
+            onNamed();
+            return;
+        }
+
         if (clientListener != null && !socket.isClosed()) {
             clientListener.onMsg(this, msg);
         }
@@ -124,19 +181,11 @@ public class Client extends Thread {
         }
     }
 
-    void setUserNamme(String userNamme) {
-        this.userNamme = userNamme;
-    }
-
-    String getUserNamme() {
-        return userNamme;
-    }
-
-    void sendMsg(Msg msg) {
+    final void sendMsg(Msg msg) {
         sendMsg(msg, null);
     }
 
-    void sendMsg(Msg msg, SendListener sendListener) {
+    final void sendMsg(Msg msg, SendListener sendListener) {
         Task.TaskHelper.getInstance().run(new Task.ITask<Msg, Msg>() {
             @Override
             public Msg getParam() {
@@ -156,9 +205,8 @@ public class Client extends Thread {
             @Override
             public void afterRun(Msg value) {
                 super.afterRun(value);
-                if (sendListener != null) {
-                    sendListener.onEnd(value);
-                }
+                if (sendListener != null) sendListener.onEnd(value);
+
             }
         });
     }
@@ -171,8 +219,26 @@ public class Client extends Thread {
         }
     }
 
+    public void setClientNameId(String name, String id) {
+        this.clientNamme = name;
+        this.clientId = id;
+
+        // 发起更名请求， 服务端接收到后会更新服务端的数据。客户端接收到会更新客户端信息。
+        JSONObject data = new JSONObject();
+        data.put("id", id);
+        data.put("name", name);
+        sendMsg(Client.CreateSystemMsg(MsgHead.TYPE_SYSTEM_SETNAME_ID, data.toJSONString()));
+    }
+
     interface ClientListener {
         void onConneted(Client client, String host, int port);
+
+        /**
+         * 只有客户端的 client ，此回调会调用。
+         * @param clientName 客户端名称
+         * @param clientId 客户端id
+         */
+        void onNamed(Client client, String clientName, String clientId);
 
         void onDisConn(Client client);
 
@@ -186,13 +252,13 @@ public class Client extends Thread {
         void onEnd(Msg msg);
     }
 
-    public static Msg CreateSystemMsg(int type) {
-        return CreateSystemMsg(type, String.valueOf(type));
+    public static Msg CreateSystemMsg(int type, String fromClientId) {
+        return CreateSystemMsg(type, fromClientId, String.valueOf(type));
     }
 
-    public static Msg CreateSystemMsg(int type, String value) {
+    public static Msg CreateSystemMsg(int type, String fromClientId, String value) {
         try {
-            return new Msg(type, "0", "0", value);
+            return new Msg(type, fromClientId, "", "", "", value);
         } catch (Exception e) {
             e.printStackTrace();
             return null;

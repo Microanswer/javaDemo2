@@ -14,7 +14,6 @@ import java.util.UUID;
 class Msg {
     // 字符编码
     private static final String CHAR_SET = Constant.CHAR_SET;
-
     // 缓存目录 （请以 / 结尾）
     private static final String CACHE_DIR = Constant.WORK_DIR;
 
@@ -25,25 +24,39 @@ class Msg {
     /**
      * 创建一个文件消息。通过此方式传送大文件 （图片、视频、音频、文件）
      *
-     * @param type     消息格式
-     * @param fromName 来自
-     * @param toName   发送给
-     * @param file     文件
+     * @param type 消息格式
+     * @param from 来自
+     * @param to   发送给
+     * @param file 文件
      */
-    public Msg(int type, String fromName, String toName, File file) throws Exception {
-        this(type, fromName, toName, file.getName(), new FileInputStream(file), file.length());
+    public Msg(
+            int type,
+            String from,
+            String fromName,
+            String to,
+            String toName,
+            File file
+    ) throws Exception {
+        this(type, from, fromName, to, toName, file.getName(), new FileInputStream(file), file.length());
         msgBody.setSendFile(file);
     }
 
     /**
      * 创建一个文本消息
      *
-     * @param type     消息类型
-     * @param fromName 来自
-     * @param toName   发送给
-     * @param text     值 内容
+     * @param type         消息类型
+     * @param fromClientId 来自
+     * @param toClientId   发送给
+     * @param text         值 内容
      */
-    public Msg(int type, String fromName, String toName, String text) {
+    public Msg(
+            int type,
+            String fromClientId,
+            String fromName,
+            String toClientId,
+            String toName,
+            String text
+    ) {
         byte[] bytes = new byte[0];
         try {
             if (text == null) text = "";
@@ -56,6 +69,8 @@ class Msg {
         MsgHead msgHead = new MsgHead();
         msgHead.setMsgType(type);
         msgHead.setFromName(fromName);
+        msgHead.setFromClientId(fromClientId);
+        msgHead.setToClientId(toClientId);
         msgHead.setToName(toName);
         msgHead.setMsgId(UUID.randomUUID().toString().substring(0, 6));
         msgHead.setContentLength(bytes.length);
@@ -73,12 +88,23 @@ class Msg {
      * 根据输入流创建一个流消息，既然是输入流，此构造方法可以创建任意消息内容（文本、图像、视频、音频、文件）
      *
      * @param type          消息类型
+     * @param fromClientId  来自
      * @param fromName      来自
-     * @param toName        发送给
+     * @param toClientId    发送给
+     * @param toName
      * @param inputStream   输入流
      * @param contentLength 流的可读长度
      */
-    private Msg(int type, String fromName, String toName, String extra, InputStream inputStream, long contentLength) throws Exception {
+    private Msg(
+            int type,
+            String fromClientId,
+            String fromName,
+            String toClientId,
+            String toName,
+            String extra,
+            InputStream inputStream,
+            long contentLength
+    ) throws Exception {
 
         // 只允许 文本，图像，视频，文件，音频 使用流传播
         if (1 > type || type > 6) {
@@ -88,7 +114,9 @@ class Msg {
         // 构建消息头
         MsgHead msgHead = new MsgHead();
         msgHead.setMsgType(type);
+        msgHead.setFromClientId(fromClientId);
         msgHead.setFromName(fromName);
+        msgHead.setToClientId(toClientId);
         msgHead.setToName(toName);
         msgHead.setMsgId(UUID.randomUUID().toString().substring(0, 6));
         msgHead.setContentLength(contentLength);
@@ -109,20 +137,14 @@ class Msg {
      * @param inputStream 输入流 ，这个流应该是 socket 的输入流，不能是别的。
      * @throws Exception 在读的过程中，如果断开链接，那么此方法可能报错。
      */
-    Msg(BufferedInputStream inputStream) throws Exception {
+    Msg(InputStream inputStream) throws Exception {
+
+        ObjectInputStream objectInputStream = new ObjectInputStream(inputStream);
+
         // 读取消息头原
         // 消息头是通过对象输出流发送的，所以通过对象输入流读取
-        MsgHead msgHead;
-        try {
+        MsgHead msgHead = (MsgHead) objectInputStream.readObject();
 
-            ObjectInputStream objectInputStream = new ObjectInputStream(inputStream);
-
-            msgHead = (MsgHead) objectInputStream.readObject();
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new Exception("Socket closed");
-        }
 
         // 读取消息体内容
         MsgBody msgBody = new MsgBody();
@@ -152,7 +174,7 @@ class Msg {
         this.msgBody = msgBody;
     }
 
-    public String getTxtBody() {
+    public String getText() {
         if (text != null) return text;
         int msgType = msgHead.getMsgType();
         if (msgType == MsgHead.TYPE_TXT || (10 < msgType && msgType <= 200)) {
@@ -176,11 +198,11 @@ class Msg {
         }
     }
 
-    public MsgHead getMsgHead () {
+    public MsgHead getMsgHead() {
         return msgHead;
     }
 
-    public MsgBody getMsgBody () {
+    public MsgBody getMsgBody() {
         return msgBody;
     }
 
@@ -223,5 +245,6 @@ class Msg {
                 Constant.deleteFile(msgBody.getReceiveFile());
             }
         }
+
     }
 }

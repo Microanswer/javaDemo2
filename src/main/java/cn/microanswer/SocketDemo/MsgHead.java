@@ -9,21 +9,24 @@ class MsgHead implements Serializable {
     private static final long serialVersionUID = 102790028741581905L;
 
     // 用户级别消息
-    static final int TYPE_TXT = 1; // 文本消息
-    static final int TYPE_PIC = 2; // 图像消息
-    static final int TYPE_VIDEO = 3; // 视频消息
-    static final int TYPE_VOICE = 4; // 音频消息
-    static final int TYPE_FILE = 5; // 文件消息
+    public static final int TYPE_TXT = 1; // 文本消息
+    public static final int TYPE_PIC = 2; // 图像消息
+    public static final int TYPE_VIDEO = 3; // 视频消息
+    public static final int TYPE_VOICE = 4; // 音频消息
+    public static final int TYPE_FILE = 5; // 文件消息
 
     // 系统级别消息
-    static final int TYPE_SYSTEM_SETNAME = 11; // 请求设置名称
-    static final int TYPE_SYSTEM_REQUEST_ALL_USER = 12;
+    public static final int TYPE_SYSTEM_SETNAME_ID = 11; // 客户端设置名称
+    public static final int TYPE_SYSTEM_REQUEST_ALL_USER = 12;
+    public static final int TYPE_SYSTEM_CREATE_ROOM = 13; // 客户端请求建立聊天室。 数据中需要已array
 
     // 通知级别消息
-    static final int TYPE_NOTIFY_MSG_SUCCESS = 101; // 通知某条消息发送成功。
+    public static final int TYPE_NOTIFY_MSG_SUCCESS = 101; // 通知某条消息发送成功。
 
     private int msgType = 1;
+    private String fromClientId;
     private String fromName;
+    private String toClientId;
     private String toName;
     private String msgId;
     private String extra; // 额外数据。当传输文件时，文件名称将存放在此字段中。
@@ -34,12 +37,12 @@ class MsgHead implements Serializable {
         this.msgType = msgType;
     }
 
-    void setFromName(String fromName) {
-        this.fromName = fromName;
+    void setFromClientId(String fromClientId) {
+        this.fromClientId = fromClientId;
     }
 
-    void setToName(String toName) {
-        this.toName = toName;
+    void setToClientId(String toClientId) {
+        this.toClientId = toClientId;
     }
 
     void setMsgId(String msgId) {
@@ -58,10 +61,12 @@ class MsgHead implements Serializable {
         this.contentLength = contentLength;
     }
 
+    void setFromName(String fromName) {
+        this.fromName = fromName;
+    }
 
-
-    public int getMsgType() {
-        return msgType;
+    void setToName(String toName) {
+        this.toName = toName;
     }
 
     public String getFromName() {
@@ -70,6 +75,18 @@ class MsgHead implements Serializable {
 
     public String getToName() {
         return toName;
+    }
+
+    public int getMsgType() {
+        return msgType;
+    }
+
+    public String getFromClientId() {
+        return fromClientId;
+    }
+
+    public String getToClientId() {
+        return toClientId;
     }
 
     public String getMsgId() {
