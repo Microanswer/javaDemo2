@@ -32,7 +32,8 @@ public class Test27 {
                 {"49vv"   , "9492"  },
                 {"oookkk" , "75bo"  },
                 {"ccc90"  , "41xxx" },
-                {""       , "22213" },
+                {"uce3"   , "22213" },
+                {"ch5d"   , "22213" },
         };
 
         for (int i = 0; i < urls.length; i++) {
