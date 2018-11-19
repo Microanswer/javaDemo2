@@ -1,0 +1,106 @@
+package cn.microanswer.socketdemo;
+
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.security.MessageDigest;
+import java.util.*;
+
+public class Utils {
+
+    public static boolean isStringEmpty(String str) {
+        return str == null || str.length() == 0;
+
+    }
+
+    /**
+     * 从 inputStream 读取 length 长度到 outputStream 中
+     *
+     * @param inputStream  输入流
+     * @param outputStream 输出流
+     * @param length       长度
+     */
+    static void streamCopy(InputStream inputStream, OutputStream outputStream, long length) throws Exception {
+        long leftSize = length; // 剩下还有多少没有读取
+        int eachSize = 4096;
+
+        byte data[] = new byte[eachSize];
+
+        // 还有剩下的没读取，就一直读取
+        while (leftSize > 0) {
+
+            int size;
+
+            if (leftSize >= eachSize) {
+                size = inputStream.read(data, 0, eachSize);
+                leftSize -= size;
+            } else {
+                // 剩下的数据量已近较少了
+                size = inputStream.read(data, 0, (int) leftSize);
+                leftSize = 0;
+            }
+
+            outputStream.write(data, 0, size);
+        }
+
+        outputStream.flush();
+    }
+
+    /**
+     * 删除目录 或 文件
+     *
+     * @param f 要删除的目录或文件
+     */
+    static void deleteFile(File f) {
+        if (f.isDirectory()) {
+            File[] files = f.listFiles();
+            if (files != null && files.length > 0) {
+                for (File ff : files) {
+                    deleteFile(ff);
+                }
+            }
+        }
+        boolean delete = f.delete();
+        if (delete) {
+            System.out.println(f.getAbsolutePath() + " 删除成功");
+        } else {
+            System.err.println(f.getAbsolutePath() + " 删除失败");
+        }
+    }
+
+    public static boolean isArrayEmpty(String[] users) {
+        return null == users || users.length == 0;
+    }
+
+    public static boolean isListEmpty(List res) {
+        return null == res || res.size() == 0;
+    }
+
+    public static String md5(String str) {
+        try {
+            MessageDigest md = MessageDigest.getInstance("MD5");
+            md.update(str.getBytes(Constant.CHAR_SET));
+            byte[] result = md.digest();
+            StringBuilder sb = new StringBuilder(32);
+            for (byte r : result) {
+                int val = r & 0xff;
+                if (val <= 0xf) {
+                    sb.append("0");
+                }
+                sb.append(Integer.toHexString(val));
+            }
+            return sb.toString();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+}
