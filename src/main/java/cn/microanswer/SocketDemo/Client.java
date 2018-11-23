@@ -1,4 +1,4 @@
-package cn.microanswer.SocketDemo;
+package cn.microanswer.socketdemo;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
@@ -93,19 +93,8 @@ public class Client extends Thread {
                 try {
                     onMsg(new Msg(inputStream));
                 } catch (Exception e) {
-                    String message = e.getMessage();
-
-                    if (e instanceof EOFException) {
-                        e = new Exception("Socket closed");
-                        message = e.getMessage();
-                    }
-
-                    if ("socket closed".equals(message.toLowerCase())) {
-                        break;
-                    }
-
-                    Exception e2 = new Exception(message);
-                    onError(e2);
+                    onError(e);
+                    break;
                 }
             }
         } catch (Exception e) {

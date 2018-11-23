@@ -1,4 +1,4 @@
-package cn.microanswer.SocketDemo;
+package cn.microanswer.socketdemo;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;

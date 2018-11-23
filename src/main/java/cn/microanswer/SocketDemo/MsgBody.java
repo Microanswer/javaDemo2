@@ -1,4 +1,4 @@
-package cn.microanswer.SocketDemo;
+package cn.microanswer.socketdemo;
 
 import java.io.File;
 import java.io.InputStream;

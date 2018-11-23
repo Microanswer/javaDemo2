@@ -1,4 +1,4 @@
-package cn.microanswer.SocketDemo;
+package cn.microanswer.socketdemo;
 
 import javax.swing.*;
 import java.awt.*;

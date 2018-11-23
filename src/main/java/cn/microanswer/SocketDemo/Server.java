@@ -1,4 +1,4 @@
-package cn.microanswer.SocketDemo;
+package cn.microanswer.socketdemo;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
@@ -69,13 +69,8 @@ public class Server extends Thread {
                     client.start(); // 保持对该客户端的活跃状态
 
                 } catch (Exception e) {
-                    String message = e.getMessage();
-                    if (message == null) {
-                        message = e.getClass().getName();
-                    }
-                    if (!"socket closed".equals(message)) {
-                        onError(e);
-                    }
+                    onError(e);
+                    break;
                 }
             }
         } catch (Exception e) {
