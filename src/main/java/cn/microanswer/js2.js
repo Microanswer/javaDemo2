@@ -959,3 +959,230 @@ var base = new baseObj();
 var act = new actObj({
     id: $('#promotionId').val(),
 });
+
+
+/*
+ * @Author: omtech.cn
+ * @Date: 2018-11-09 17:07:09
+ * @Last Modified by: Doris.Lee
+ * @Last Modified time: 2018-11-26 14:40:37
+ */
+
+!(function (){
+    // 申明对象
+    var quanObj = function (obj){
+        this.vars = {
+            id: '',
+            // getUser: app.getLoginUser(),
+            itemMsg: [],
+            couponWrap: '#J_mycoupon',
+            // 我的优惠券
+            myCouponApi: "/Home/Promotion/myTickets",
+            // 激活优惠券
+            activeApi: "/Home/Code/activation"
+        };
+        // 参数标准化
+        this.v = obj ? base.standardization(this.vars, obj) : this.vars;
+        // 初始化
+        this.init();
+    };
+
+    // 添加对象
+    quanObj.prototype = {
+        init: function() {
+            var that = this;
+            base.getDevice();
+            if (base.v['isCando']) {
+                base.getUserInfo();
+                that.coupon();
+                base.loadOut();
+                that.eventFun();
+            } else {
+                window.location.href = '/Home/Promotion/index?id=' + that.v['id'];
+                // tips("请" + openApp.btnText + "看度，查看我的优惠券！");
+            }
+        },
+        // 客户端内显示页面
+        coupon: function() {
+            var that = this,
+                $coupon = $(that.v['couponWrap']);
+            // 暂时存放用户信息
+            var param = {
+                auth: base.v['userMsg'].auth
+            };
+            base.getAjax(that.v['myCouponApi'], 'get', param, true, function(json) {
+                var data = json.data,
+                    item = null,
+                    html = '';
+
+                if (json.state && data.length > 0) {
+                    console.log(json.message);
+                    that.v['itemMsg'] = data;
+                    html += '<div class="award-list pt2">';
+                    for (var i = 0; i < data.length; i++) {
+                        item = data[i];
+                        html += '<div class="award-item item-' + ((i % 4) + 1) + '">';
+                        html += '  <div class="item-pic">';
+                        html += '    <img src="' + item.url + '" alt="' + item.name + '">';
+                        html += '  </div>';
+                        html += '  <div class="item-title">' + item.name + '</div>';
+                        switch (item.status) {
+                            //已领取(显示激活按钮)
+                            case 'RECEIVED':
+                                html += '<div class="item-tips" id="time' + i + '">激活倒计时：' + base.timeFormat(item.end_activation,"DD天hh:mm:ss") + '</div>';
+                                html += '<a class="item-btn J_received" href="javascript:void(0);">激活</a>';
+                                break;
+                            //已激活(显示打开按钮)
+                            case 'ACTIVATED':
+                                if (item.validity_period != 0){
+                                    html += '<div class="item-tips">使用有效期：' + dateFormat(item.validity_period,'YYYY-MM-DD hh:mm') + '</div>';
+                                } else {
+                                    html += '<div class="item-tips">(此券长期有效)</div>';
+                                }
+                                html += '<a class="item-btn J_activated" href="javascript:void(0);">打开</a>';
+                                break;
+                            //失效
+                            case 'INVALID':
+                                html += '<span class="item-btn J_invalid btn-disable" href="javascript:void(0);">失效</span>';
+                                break;
+                            //已使用
+                            case 'USED':
+                                html += '<span class="item-btn J_used btn-disable" href="javascript:void(0);">已使用</span>';
+                                break;
+                            //过期
+                            case 'EXPIRED':
+                                html += '<span class="item-btn J_expired btn-disable" href="javascript:void(0);">过期</span>';
+                                break;
+                        }
+                        html += '  <div class="item-value">价值:<span class="J_itemValue">' + Number(item.price).toFixed(2) + '</span>元</div>';
+                        html += '</div>';
+                    }
+                    html += '</div>';
+                    $coupon.html(html);
+                    var timer = setInterval(function() {
+                        for (var i = 0; i < data.length; i++) {
+                            item = data[i];
+                            if (item.status == 'RECEIVED') {
+                                item.end_activation--;
+                                $coupon.find("#time" + i).html('激活倒计时：' + base.timeFormat(item.end_activation,"DD天hh:mm:ss"));
+                                if (item.end_activation <= 0) {
+                                    $coupon.find("#time" + i).next('.item-btn:first').remove();
+                                    $coupon.find("#time" + i).parent().append('<span class="item-btn J_getItemBtn btn-disable" href="javascript:void(0);">失效</span>');
+                                    $coupon.find("#time" + i).remove();
+                                }
+                                // console.log(temp[i].end_activation);
+                            }
+                        }
+                        if ($coupon.find('.J_received').length <= 0) {
+                            clearInterval(timer);
+                        }
+                    }, 1000);
+                } else {
+                    console.log(json.message);
+                    html += '';
+                    html += '<div class="award-none">';
+                    html += '  <div class="tips-none"></div>';
+                    html += '  <div class="tips-btn mt2"><a class="activity-btn red-btn J_active" href="/Home/Promotion/index?id=' + that.v['id'] + '">立即去领取</a></div>';
+                    html += '</div>';
+                    $coupon.html(html);
+                }
+            },false);
+        },
+        // 点击事件
+        eventFun: function() {
+            var that = this,
+                $coupon = $(that.v['couponWrap']);
+            // 激活券码
+            $('body').on('click', '#J_mycoupon .J_received', function() {
+                var index = $(this).parent('.award-item').index();
+                var data = that.v['itemMsg'],
+                    item = data[index];
+                var param = {
+                    id: item.id,
+                    auth: base.v['userMsg'].auth
+                };
+                var head = {
+                    'X-ClientId': base.v['userDevice'].UUID
+                };
+                console.log(head);
+                // 添加券信息HTML
+                base.getAjax(that.v['activeApi'], 'get', param, true, function(json) {
+                    base.waiting();
+                    if (json.state) {
+                        var curItem = json.data;
+                        var html = '';
+                        html += '<div id="J_actCoupon" class="tips-barcode w">';
+                        html += '  <div class="inner">';
+                        html += '    <div class="hd">激活成功</div>';
+                        html += '    <div class="name mt2">“' + item.name + '”券</div>';
+                        html += '    <div class="codeBox mt4">';
+                        html += '      <p class="text">提示：购物时将此码出示给舞东风收银员</p>';
+                        html += '      <div class="img-box"><img id="J_myCode" data-src="' + curItem.bar_code_url + '" src="' + item.bar_code_url + '" alt="点击加载"></div>';
+                        html += '      <div class="code-tic">券码：' + curItem.code + '</div>';
+                        html += '      <div class="code-yzm">验证码：' + curItem.verify_code + '</div>';
+                        html += '    </div>';
+                        html += '    <a class="close mt4 m-auto" href="javascript:void(0);"></a>';
+                        html += '  </div>';
+                        html += '</div>';
+                        $('body').append(html);
+                        base.waitOut();
+                    } else {
+                        alerts(json.message);
+                        base.waitOut();
+                    }
+                },true,head);
+                // 关闭券信息，激活按钮变为打开按钮
+                $('body').on('click', '#J_actCoupon .close', function() {
+                    $('#J_actCoupon').remove();
+                    var html = '';
+                    if (item.validity_period != 0){
+                        html += '<div class="item-tips">使用有效期：' + dateFormat(item.validity_period,'YYYY-MM-DD hh:mm') + '</div>';
+                    } else {
+                        html += '<div class="item-tips">(此券长期有效)</div>';
+                    }
+                    html += '<a class="item-btn J_activated" href="javascript:void(0);">打开</a>';
+                    $coupon.find("#time" + index).next('.item-btn:first').remove();
+                    $coupon.find("#time" + index).parent().append(html);
+                    $coupon.find("#time" + index).remove();
+                    window.location.reload();
+                });
+                // 更新券码
+                $('body').on('click', '#J_myCode', function() {
+                    $(this).attr('src',$(this).attr('data-src')+'&t='+Math.random());
+                });
+            });
+            // 打开券码
+            $('body').on('click', '#J_mycoupon .J_activated', function() {
+                var index = $(this).parent('.award-item').index();
+                var data = that.v['itemMsg'],
+                    item = data[index];
+                // 添加券信息HTML
+                var html = '';
+                html += '<div id="J_seeCoupon" class="tips-barcode w">';
+                html += '  <div class="inner">';
+                html += '    <div class="name mt2">“' + item.name + '”券</div>';
+                html += '    <div class="codeBox mt4">';
+                html += '      <p class="text">提示：购物时将此码出示给舞东风收银员</p>';
+                html += '      <div class="img-box"><img id="J_myCode" data-src="' + item.bar_code_url + '" src="' + item.bar_code_url + '" alt="点击加载"></div>';
+                html += '      <div class="code-tic">券码：' + item.code + '</div>';
+                html += '      <div class="code-yzm">验证码：' + item.verify_code + '</div>';
+                html += '    </div>';
+                html += '    <a class="close mt4 m-auto" href="javascript:void(0);"></a>';
+                html += '  </div>';
+                html += '</div>';
+                $('body').append(html);
+                // 关闭券信息
+                $('body').on('click', '#J_seeCoupon .close', function() {
+                    $('#J_seeCoupon').remove();
+                });
+                // 更新券码
+                $('body').on('click', '#J_myCode', function() {
+                    console.log(1);
+                    $(this).attr('src',$(this).attr('data-src')+'&t='+Math.random());
+                });
+            });
+        }
+    };
+    window.quanObj = quanObj;
+
+})();

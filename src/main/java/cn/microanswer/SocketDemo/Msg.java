@@ -1,4 +1,4 @@
-package cn.microanswer.socketdemo;
+package cn.microanswer.SocketDemo;
 
 import java.io.*;
 import java.util.UUID;

@@ -1,4 +1,4 @@
-package cn.microanswer.socketdemo;
+package cn.microanswer.SocketDemo;
 
 import javax.swing.border.AbstractBorder;
 import java.awt.*;
