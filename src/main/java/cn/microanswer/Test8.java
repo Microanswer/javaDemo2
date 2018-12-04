@@ -207,7 +207,7 @@ public class Test8 {
             jack.paint(g);
         }
 
-        public void startMove(ArrayList<Step> steps) {
+        public void startMove(final ArrayList<Step> steps) {
             if (isMoving) {
                 JOptionPane.showMessageDialog(this, "请等待移动完成", "提示", JOptionPane.WARNING_MESSAGE);
                 return;

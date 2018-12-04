@@ -59,7 +59,7 @@ public class Test25 {
      * @param fromDir 源目录
      * @param toDir   目标目录
      */
-    public static void copy2Dir(FileFilter filter, String fromDir, String toDir) {
+    public static void copy2Dir(final FileFilter filter, String fromDir, String toDir) {
 
         try {
             File fromDirFile = new File(fromDir);

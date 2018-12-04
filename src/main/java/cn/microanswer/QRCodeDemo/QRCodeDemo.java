@@ -79,7 +79,7 @@ public class QRCodeDemo extends JFrame implements ActionListener {
             txt = " ";
         }
 
-        Qrcode qrcode = new Qrcode();
+        final Qrcode qrcode = new Qrcode();
         boolean[][] booleans = new boolean[0][];
         try {
             booleans = qrcode.calQrcode(txt.getBytes("UTF-8"));
@@ -87,14 +87,19 @@ public class QRCodeDemo extends JFrame implements ActionListener {
             e.printStackTrace();
         }
 
-        BufferedImage image = new BufferedImage(booleans[0].length * 3, booleans.length * 3, BufferedImage.TYPE_INT_ARGB);
+        int bcot = 2;
+
+        if (bcot < 1) {
+            bcot = 1;
+        }
+        BufferedImage image = new BufferedImage(booleans[0].length * bcot, booleans.length * bcot, BufferedImage.TYPE_INT_ARGB);
 
         Graphics graphics = image.getGraphics();
         Color transpart = new Color(1, 1, 1, 1f);
         for (int i = 0; i < booleans.length; i++) {
             for (int j = 0; j < booleans[i].length; j++) {
                 graphics.setColor(booleans[i][j] ? Color.BLACK : transpart);
-                graphics.fillRect(j * 3, i * 3, 3, 3);
+                graphics.fillRect(j * bcot, i * bcot, bcot, bcot);
             }
         }
 

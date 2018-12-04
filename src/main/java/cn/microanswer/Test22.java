@@ -15,11 +15,11 @@ public class Test22 {
      */
     public static void main(String[] args) throws Exception {
 
-        JFrame jFrame = new JFrame("Slider Demo");
+    	final JFrame jFrame = new JFrame("Slider Demo");
         jFrame.setLayout(null); // 不使用布局管理器，直接按坐标布局。
 
         // rgb 三个颜色， 就是用三个滑动条
-        JSlider[] jsliders = new JSlider[3];
+        final JSlider[] jsliders = new JSlider[3];
         for (int i = 0; i < jsliders.length; i++) {
             jsliders[i] = new JSlider(0, 255, 0);
             jsliders[i].addChangeListener(new ChangeListener() {

@@ -24,8 +24,8 @@ public class Test29 {
         Container contentPane = j.getContentPane();
         contentPane.setLayout(new BorderLayout(0, 0));
 
-        Vector<User> users = new Vector<>();
-        JList<User> userJList = new JList<>(users);
+        final Vector<User> users = new Vector<>();
+        final JList<User> userJList = new JList<>(users);
         JScrollPane scrollPane = new JScrollPane(userJList);
         contentPane.add(scrollPane, BorderLayout.CENTER);
 

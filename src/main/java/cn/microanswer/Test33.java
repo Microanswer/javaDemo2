@@ -16,21 +16,21 @@ public class Test33 {
         Container contentPane = jsq.getContentPane();
         contentPane.setLayout(new FlowLayout());
 
-        JTextField field1 = new JTextField();
+        final JTextField field1 = new JTextField();
         field1.setPreferredSize(new Dimension(50, 26));
         contentPane.add(field1);
 
-        JComboBox<String> jComboBox = new JComboBox<>(new String[]{"+", "-", "x", "÷"});
+        final JComboBox<String> jComboBox = new JComboBox<>(new String[]{"+", "-", "x", "÷"});
         contentPane.add(jComboBox);
 
-        JTextField field2 = new JTextField();
+        final JTextField field2 = new JTextField();
         field2.setPreferredSize(new Dimension(50, 26));
         contentPane.add(field2);
 
-        JButton dengyu = new JButton("=");
+        final JButton dengyu = new JButton("=");
         contentPane.add(dengyu);
 
-        JLabel result = new JLabel();
+        final JLabel result = new JLabel();
         contentPane.add(result);
 
         dengyu.addActionListener(new ActionListener() {

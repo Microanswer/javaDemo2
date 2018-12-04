@@ -82,13 +82,13 @@ public class Test34 extends JPanel implements Runnable {
                 public void run() {
 
                     // 构建一个窗口
-                    JFrame jFrame = new JFrame("Timer");
+                	final JFrame jFrame = new JFrame("Timer");
                     jFrame.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
                     jFrame.setBounds(650, 400, 360, 135);
                     jFrame.setResizable(false);
 
                     // 构建时间Panel
-                    Test34 timerPanel = new Test34();
+                    final Test34 timerPanel = new Test34();
                     jFrame.add(timerPanel);
 
                     // 让时间panel开始走
