@@ -90,15 +90,14 @@ public class Client extends Thread {
             // 循环读取输入流，获取消息信息。
             inputStream = new BufferedInputStream(socket.getInputStream());
             while (socket.isConnected() && !socket.isClosed() && !socket.isOutputShutdown()) {
-                try {
-                    onMsg(new Msg(inputStream));
-                } catch (Exception e) {
-                    onError(e);
-                    break;
-                }
+                onMsg(new Msg(inputStream));
             }
         } catch (Exception e) {
-            onError(e);
+            if ("Socket closed".equals(e.getMessage())) {
+                // 客户端关闭了，此错误不用处理任何事情，继续向下执行即可。
+            } else {
+                onError(e);
+            }
         } finally {
             try {
                 if (inputStream != null) inputStream.close();
@@ -121,11 +120,13 @@ public class Client extends Thread {
     }
 
     void onError(Exception e) {
-        if (clientListener != null) clientListener.onError(this, e);
+    	e.printStackTrace();
+    	Exception e2 = new Exception(e);
+    	e.printStackTrace();
+        if (clientListener != null) clientListener.onError(this, e2);
     }
 
     void onDisConn() {
-        System.out.println("客户端关闭");
         if (clientListener != null) clientListener.onDisConn(this);
     }
 

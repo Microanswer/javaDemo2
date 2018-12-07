@@ -62,19 +62,19 @@ public class Server extends Thread {
 
 
             while (!serverSocket.isClosed()) {
-                try {
-                    Socket accept = serverSocket.accept();
-                    Client client = new Client(accept);
-                    client.setClientListener(clientListener);
-                    client.start(); // 保持对该客户端的活跃状态
-
-                } catch (Exception e) {
-                    onError(e);
-                    break;
-                }
+                Socket accept = serverSocket.accept();
+                Client client = new Client(accept);
+                client.setClientListener(clientListener);
+                client.start(); // 保持对该客户端的活跃状态
             }
         } catch (Exception e) {
-            onError(e);
+
+            if ("socket closed".equals(e.getMessage())) {
+                // 服务端关闭，此错误说明服务端被手动关闭了，不用处理任何事情。
+            } else {
+                onError(e);
+            }
+
         } finally {
 
             // 跳出循环的时候，也就是关闭服务的时候。
@@ -303,34 +303,6 @@ public class Server extends Thread {
      * @param client 客户端
      */
     void onClientDisco(Client client) {
-        clients.remove(client.getClientId());
-
-        // 向所有已在线的人发送该用户下线信息。
-        JSONObject info = new JSONObject();
-        info.put("name", client.getClientNamme());
-        info.put("id", client.getClientId());
-        for (Map.Entry<String, Client> e : clients.entrySet()) {
-            e.getValue().sendMsg(Client.CreateSystemMsg(
-                    MsgHead.TYPE_NOTIFY_USER_OFFLINE,
-                    client.getClientId(),
-                    info.toJSONString()
-            ));
-        }
-
-        // 查找所有的聊天室， 如果该下线的用户在某一个聊天室中，则关闭这个聊天室。
-        Set<Map.Entry<String, Room>> entries = rooms.entrySet();
-        ArrayList<Room> shuldRemove = new ArrayList<>();
-        Room.Member member = new Room.Member(client.getClientId(), client.getClientNamme());
-        for (Map.Entry<String, Room> entry : entries) {
-            Room value = entry.getValue();
-            if (value.getMembers().contains(member) && value.isSignle()) {
-                shuldRemove.add(value);
-            }
-        }
-        for (Room aShuldRemove : shuldRemove) {
-            rooms.remove(aShuldRemove.getId());
-        }
-
         if (serverListener != null) serverListener.onClientDisco(client);
     }
 
@@ -388,6 +360,36 @@ public class Server extends Thread {
 
         @Override
         public void onDisConn(final Client client) {
+
+            clients.remove(client.getClientId());
+
+            // 向所有已在线的人发送该用户下线信息。
+            JSONObject info = new JSONObject();
+            info.put("name", client.getClientNamme());
+            info.put("id", client.getClientId());
+            for (Map.Entry<String, Client> e : clients.entrySet()) {
+                e.getValue().sendMsg(Client.CreateSystemMsg(
+                        MsgHead.TYPE_NOTIFY_USER_OFFLINE,
+                        client.getClientId(),
+                        info.toJSONString()
+                ));
+            }
+
+            // 查找所有的聊天室， 如果该下线的用户在某一个聊天室中，则关闭这个聊天室。
+            Set<Map.Entry<String, Room>> entries = rooms.entrySet();
+            ArrayList<Room> shuldRemove = new ArrayList<>();
+            Room.Member member = new Room.Member(client.getClientId(), client.getClientNamme());
+            for (Map.Entry<String, Room> entry : entries) {
+                Room value = entry.getValue();
+                if (value.getMembers().contains(member) && value.isSignle()) {
+                    shuldRemove.add(value);
+                }
+            }
+            for (Room aShuldRemove : shuldRemove) {
+                rooms.remove(aShuldRemove.getId());
+            }
+
+
             SwingUtilities.invokeLater(new Runnable() {
                 @Override
                 public void run() {

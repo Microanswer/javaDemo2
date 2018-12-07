@@ -145,11 +145,10 @@ class Msg {
         // 消息头是通过对象输出流发送的，所以通过对象输入流读取
         MsgHead msgHead = (MsgHead) objectInputStream.readObject();
 
-
         // 读取消息体内容
         MsgBody msgBody = new MsgBody();
         int msgType = msgHead.getMsgType();
-        // 如果内容长度大于了 1mb 或者是文件 则将内容缓存到文件。
+        // 如果内容长度大于了 1mb 或者是文件 则将内容桥接到另一输出端口。(什么意思？就是不保存内容在机器上了，直接将内容发给接收端。TODO)
         if (msgHead.getContentLength() >= 1024 * 1024 ||
                 msgType == MsgHead.TYPE_PIC ||
                 msgType == MsgHead.TYPE_VIDEO ||
@@ -225,7 +224,9 @@ class Msg {
     public void write(BufferedOutputStream outputStream, boolean deleteReceiveFile) throws Exception {
 
         // 先输出head
-        new ObjectOutputStream(outputStream).writeObject(msgHead);
+        ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
+        objectOutputStream.writeObject(msgHead);
+        objectOutputStream.flush();
 
         // 然后输出body
         if (msgBody.getInputStream() == null) {

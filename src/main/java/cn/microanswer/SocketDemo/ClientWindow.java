@@ -176,7 +176,7 @@ class ClientWindow extends JFrame {
         JPanel northPanel = new JPanel();
         northPanel.setLayout(new FlowLayout(FlowLayout.LEFT, 0, 10));
 
-        userNameLabel = new JLabel("我的名称：" + (client.getClientNamme() == null ? "" : client.getClientNamme()) + " ");
+        userNameLabel = new JLabel("我的名称：" + (client.getClientNamme() == null ? "初始化中..." : client.getClientNamme()) + " ");
         userNameLabel.setBorder(BorderFactory.createEmptyBorder(0, 9, 0, 0));
         modifyMyName = new JLabel("修改");
         modifyMyName.setEnabled(false); // 在服务端返回了客户端初始名称后，才可以修改
