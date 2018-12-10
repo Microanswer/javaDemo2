@@ -89,7 +89,7 @@ public class QRCodeDemo extends JFrame implements ActionListener {
 			e.printStackTrace();
 		}
 
-		int bcot = 1;
+		int bcot = 3;
 
 		if (bcot < 1) {
 			bcot = 1;
