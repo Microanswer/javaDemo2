@@ -33,13 +33,11 @@ public class Utils {
 
             if (leftSize >= eachSize) {
                 size = inputStream.read(data, 0, eachSize);
-                leftSize -= size;
             } else {
                 // 剩下的数据量已近较少了
                 size = inputStream.read(data, 0, (int) leftSize);
-                leftSize = 0;
             }
-
+            leftSize -= size;
             outputStream.write(data, 0, size);
         }
 

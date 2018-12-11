@@ -3,7 +3,9 @@ package cn.microanswer.SocketDemo;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 
-import java.io.*;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.Socket;
 
@@ -16,7 +18,7 @@ public class Client extends Thread {
     private Socket socket;
 
     // 来自 socket 连接成功后获取到的输出流。
-    private BufferedOutputStream outputStream;
+    private OutputStream outputStream;
 
     // 信息状态监听器。
     private ClientListener clientListener;
@@ -80,20 +82,34 @@ public class Client extends Thread {
         InputStream inputStream = null;
 
         try {
+            socket.setTcpNoDelay(true); // 数据不做缓冲，立即发送
+            socket.setSoLinger(true, 0); // socket关闭时，立即释放资源
+            socket.setKeepAlive(true);
+            socket.setTrafficClass(0x04 | 0x10); // 高可靠性和最小延迟传输
             // 获取输出流
-            outputStream = new BufferedOutputStream(socket.getOutputStream());
+            outputStream = socket.getOutputStream();
+            // 循环读取输入流，获取消息信息。
+            inputStream = socket.getInputStream();
 
             // 调起监听连接成功监听。
             // （可能有在 onConneted 方法中向服务端发出消息的需求，所以，此方法的调起前要初始化好输出流。）
             onConneted(host, port);
 
-            // 循环读取输入流，获取消息信息。
-            inputStream = new BufferedInputStream(socket.getInputStream());
             while (socket.isConnected() && !socket.isClosed() && !socket.isOutputShutdown()) {
-                onMsg(new Msg(inputStream));
+                Msg msg = new Msg(inputStream);
+                MsgHead msgHead = msg.getMsgHead();
+                int msgType = msgHead.getMsgType();
+                if ((2 <= msgType && msgType <= 5) || msgHead.getContentLength() > 500 * 1024) { // 涉及大文件的消息，先回调，后读取数据，
+                    onMsg(msg);
+                    msg._readBodyFromSocketInputStream(inputStream);
+                } else { // 消息内容很小，直接读取完内容，再进行回调。
+                    msg._readBodyFromSocketInputStream(inputStream);
+                    onMsg(msg);
+                }
             }
         } catch (Exception e) {
-            if ("Socket closed".equals(e.getMessage())) {
+            String message = e.getMessage();
+            if ("Socket closed".equals(message) || "socket closed".equals(message)) {
                 // 客户端关闭了，此错误不用处理任何事情，继续向下执行即可。
             } else {
                 onError(e);
@@ -120,9 +136,9 @@ public class Client extends Thread {
     }
 
     void onError(Exception e) {
-    	e.printStackTrace();
-    	Exception e2 = new Exception(e);
-    	e.printStackTrace();
+        e.printStackTrace();
+        Exception e2 = new Exception(e);
+        e.printStackTrace();
         if (clientListener != null) clientListener.onError(this, e2);
     }
 
@@ -143,7 +159,6 @@ public class Client extends Thread {
     }
 
     void onMsg(Msg msg) {
-
         int msgType = msg.getMsgHead().getMsgType();
 
         // 接收到初始化客户端id和名称的消息。该消息为底层消息。不暴露给外部。
@@ -181,34 +196,23 @@ public class Client extends Thread {
         }
     }
 
-    final void sendMsg(Msg msg) {
-        sendMsg(msg, null);
-    }
-
-    final void sendMsg(final Msg msg, final SendListener sendListener) {
-        Task.TaskHelper.getInstance().run(new Task.ITask<Msg, Msg>() {
-            @Override
-            public Msg getParam() {
-                return msg;
-            }
-
-            @Override
-            public Msg run(Msg param) {
-                try {
-                    msg.write(outputStream);
-                } catch (Exception e) {
-                    e.printStackTrace();
+    final void sendMsg(final Msg msg) {
+        try {
+            Task.TaskHelper.getInstance().run(new Task.ITask<Msg, Msg>() {
+                @Override
+                public Msg getParam() {
+                    return msg;
                 }
-                return param;
-            }
 
-            @Override
-            public void afterRun(Msg value) {
-                super.afterRun(value);
-                if (sendListener != null) sendListener.onEnd(value);
-
-            }
-        });
+                @Override
+                public Msg run(Msg msg) throws Exception {
+                    msg.write(outputStream);
+                    return msg;
+                }
+            });
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     void colse() {
@@ -252,18 +256,13 @@ public class Client extends Thread {
         void onMsg(Client client, Msg msg);
     }
 
-    interface SendListener {
-        // 消息发送完成回调。
-        void onEnd(Msg msg);
-    }
-
     public static Msg CreateSystemMsg(int type, String fromClientId) {
         return CreateSystemMsg(type, fromClientId, String.valueOf(type));
     }
 
     public static Msg CreateSystemMsg(int type, String fromClientId, String value) {
         try {
-            return new Msg(type, fromClientId, "", "", "", value);
+            return new Msg(type, fromClientId, "system", "", "system", value);
         } catch (Exception e) {
             e.printStackTrace();
             return null;

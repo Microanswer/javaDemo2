@@ -68,8 +68,8 @@ public class Server extends Thread {
                 client.start(); // 保持对该客户端的活跃状态
             }
         } catch (Exception e) {
-
-            if ("socket closed".equals(e.getMessage())) {
+            String message = e.getMessage();
+            if ("Socket closed".equals(message) || "socket closed".equals(message)) {
                 // 服务端关闭，此错误说明服务端被手动关闭了，不用处理任何事情。
             } else {
                 onError(e);
@@ -176,7 +176,7 @@ public class Server extends Thread {
                     JSONObject j2 = others.getJSONObject(1);
                     roomName = j1.getString("name") + "、" + j2.getString("name");
                 }
-                if (others.size() > 2) {
+                if (others.size() >= 2) {
                     roomName += "等";
                 }
 

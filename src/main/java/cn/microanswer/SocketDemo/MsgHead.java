@@ -7,6 +7,7 @@ import java.io.Serializable;
  */
 class MsgHead implements Serializable {
     private static final long serialVersionUID = 102790028741581905L;
+    public static final int HEAD_LENGTH = 4096; // 头部长度固定
 
     // 用户级别消息
     public static final int TYPE_TXT = 1; // 文本消息
@@ -37,75 +38,75 @@ class MsgHead implements Serializable {
     private long createAt;
     private long contentLength;
 
-    void setMsgType(int msgType) {
-        this.msgType = msgType;
-    }
-
-    void setFromClientId(String fromClientId) {
-        this.fromClientId = fromClientId;
-    }
-
-    void setToClientId(String toClientId) {
-        this.toClientId = toClientId;
-    }
-
-    void setMsgId(String msgId) {
-        this.msgId = msgId;
-    }
-
-    void setExtra(String extra) {
-        this.extra = extra;
-    }
-
-    void setCreateAt(long createAt) {
-        this.createAt = createAt;
-    }
-
-    void setContentLength(long contentLength) {
-        this.contentLength = contentLength;
-    }
-
-    void setFromName(String fromName) {
-        this.fromName = fromName;
-    }
-
-    void setToName(String toName) {
-        this.toName = toName;
-    }
-
-    public String getFromName() {
-        return fromName;
-    }
-
-    public String getToName() {
-        return toName;
-    }
-
     public int getMsgType() {
         return msgType;
+    }
+
+    public void setMsgType(int msgType) {
+        this.msgType = msgType;
     }
 
     public String getFromClientId() {
         return fromClientId;
     }
 
+    public void setFromClientId(String fromClientId) {
+        this.fromClientId = fromClientId;
+    }
+
+    public String getFromName() {
+        return fromName;
+    }
+
+    public void setFromName(String fromName) {
+        this.fromName = fromName;
+    }
+
     public String getToClientId() {
         return toClientId;
+    }
+
+    public void setToClientId(String toClientId) {
+        this.toClientId = toClientId;
+    }
+
+    public String getToName() {
+        return toName;
+    }
+
+    public void setToName(String toName) {
+        this.toName = toName;
     }
 
     public String getMsgId() {
         return msgId;
     }
 
+    public void setMsgId(String msgId) {
+        this.msgId = msgId;
+    }
+
     public String getExtra() {
         return extra;
+    }
+
+    public void setExtra(String extra) {
+        this.extra = extra;
     }
 
     public long getCreateAt() {
         return createAt;
     }
 
+    public void setCreateAt(long createAt) {
+        this.createAt = createAt;
+    }
+
     public long getContentLength() {
         return contentLength;
+    }
+
+    public void setContentLength(long contentLength) {
+        this.contentLength = contentLength;
     }
 }

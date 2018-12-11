@@ -1,5 +1,7 @@
 package cn.microanswer.SocketDemo;
 
+import com.alibaba.fastjson.JSON;
+
 import java.io.*;
 import java.util.UUID;
 
@@ -17,9 +19,11 @@ class Msg {
     // 缓存目录 （请以 / 结尾）
     private static final String CACHE_DIR = Constant.WORK_DIR;
 
+    private boolean isEnd; // 标记是否发送或接受完毕。
     private MsgHead msgHead;
     private MsgBody msgBody;
     private String text = null; // 如果是文本消息，则此字段是文本内容。
+    private SendListener sendListener;
 
     /**
      * 创建一个文件消息。通过此方式传送大文件 （图片、视频、音频、文件）
@@ -138,17 +142,28 @@ class Msg {
      * @throws Exception 在读的过程中，如果断开链接，那么此方法可能报错。
      */
     Msg(InputStream inputStream) throws Exception {
-
-        ObjectInputStream objectInputStream = new ObjectInputStream(inputStream);
+        byte[] headByte = new byte[MsgHead.HEAD_LENGTH];
+        int total = inputStream.read(headByte, 0, MsgHead.HEAD_LENGTH);
+        if (total == -1) {
+            throw new Exception("消息头无法正确读取");
+        }
+        while (total < MsgHead.HEAD_LENGTH) {
+            // 如果没有读取完头数据，继续读取，否者可能导致消息体数据异常。
+            byte data[] = new byte[MsgHead.HEAD_LENGTH - total];
+            int size = inputStream.read(data);
+            total += size;
+        }
+        String headJsonStr = new String(headByte, 0, total, CHAR_SET);
 
         // 读取消息头原
-        // 消息头是通过对象输出流发送的，所以通过对象输入流读取
-        MsgHead msgHead = (MsgHead) objectInputStream.readObject();
+        this.msgHead = JSON.parseObject(headJsonStr, MsgHead.class);
+    }
 
+    void _readBodyFromSocketInputStream(InputStream inputStream) throws Exception {
         // 读取消息体内容
         MsgBody msgBody = new MsgBody();
         int msgType = msgHead.getMsgType();
-        // 如果内容长度大于了 1mb 或者是文件 则将内容桥接到另一输出端口。(什么意思？就是不保存内容在机器上了，直接将内容发给接收端。TODO)
+        // 如果内容长度大于了 1mb 或者是文件， 这将文件存储到缓存文件。
         if (msgHead.getContentLength() >= 1024 * 1024 ||
                 msgType == MsgHead.TYPE_PIC ||
                 msgType == MsgHead.TYPE_VIDEO ||
@@ -169,8 +184,11 @@ class Msg {
             msgBody.setInputStream(new ByteArrayInputStream(outputStream.toByteArray()));
         }
 
-        this.msgHead = msgHead;
+        isEnd = true;
         this.msgBody = msgBody;
+        if (sendListener != null) {
+            sendListener.onEnd(this);
+        }
     }
 
     public String getText() {
@@ -211,7 +229,7 @@ class Msg {
      * @param outputStream 输出流
      * @throws Exception 错误信息
      */
-    public void write(BufferedOutputStream outputStream) throws Exception {
+    public void write(OutputStream outputStream) throws Exception {
         write(outputStream, true);
     }
 
@@ -221,12 +239,16 @@ class Msg {
      * @param outputStream      输出流
      * @param deleteReceiveFile 当传递 true 时，会检测此消息是否有缓存文件，如果有，将在消息发出后自动删除。
      */
-    public void write(BufferedOutputStream outputStream, boolean deleteReceiveFile) throws Exception {
-
+    public void write(final OutputStream outputStream, boolean deleteReceiveFile) throws Exception {
+        byte[] headByte = new byte[MsgHead.HEAD_LENGTH];
+        String jsonStr = JSON.toJSONString(msgHead);
+        byte[] bytes = jsonStr.getBytes(CHAR_SET);
+        if (bytes.length > headByte.length) {
+            throw new Exception("消息头内容过多");
+        }
+        System.arraycopy(bytes, 0, headByte, 0, bytes.length);
         // 先输出head
-        ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
-        objectOutputStream.writeObject(msgHead);
-        objectOutputStream.flush();
+        outputStream.write(headByte);
 
         // 然后输出body
         if (msgBody.getInputStream() == null) {
@@ -246,6 +268,26 @@ class Msg {
                 Constant.deleteFile(msgBody.getReceiveFile());
             }
         }
+        isEnd = true;
+        if (sendListener != null) {
+            sendListener.onEnd(this);
+        }
+    }
 
+    public boolean isEnd() {
+        return isEnd;
+    }
+
+    public SendListener getSendListener() {
+        return sendListener;
+    }
+
+    public void setSendListener(SendListener sendListener) {
+        this.sendListener = sendListener;
+    }
+
+    interface SendListener {
+        // 消息发送完成回调。
+        void onEnd(Msg msg);
     }
 }

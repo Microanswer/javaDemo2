@@ -285,10 +285,10 @@ class ClientWindow extends JFrame {
      * @param msg 消息内容
      */
     private void onGetMsg(Msg msg) {
-        String fromName = msg.getMsgHead().getFromName();
-        String fromId = msg.getMsgHead().getFromClientId();
-        String roomId = msg.getMsgHead().getToClientId();
-        String roomName = fromName;
+        final String fromName = msg.getMsgHead().getFromName();
+        final String fromId = msg.getMsgHead().getFromClientId();
+        final String roomId = msg.getMsgHead().getToClientId();
+        final String roomName = fromName;
         Room room = new Room(roomId, roomName);
         // 如果列队中有这个聊天室，只需要拿到这个聊天室，然后向聊天室中分发这条消息即可。
         Room.Member fromMember = new Room.Member(fromId, fromName);
@@ -298,8 +298,14 @@ class ClientWindow extends JFrame {
             // 聊天列队中没有这个聊天室，则创建出这个聊天室
             room.addMember(new Room.Member(client.getClientId(), client.getClientNamme()));
             room.addMember(fromMember);
-            room.setRoomListener(new TalkPanel(room));
-            talkingRooms.put(roomId, room);
+            final Room finalRoom = room;
+            SwingUtilities.invokeLater(new Runnable() {
+                @Override
+                public void run() {
+                    finalRoom.setRoomListener(new TalkPanel(finalRoom));
+                    talkingRooms.put(roomId, finalRoom);
+                }
+            });
         }
         // 检查聊天室中是否有发件人的信息，如果没有，则将其加入
         if (!room.getMembers().contains(fromMember)) {
@@ -552,12 +558,8 @@ class ClientWindow extends JFrame {
                         room.getId(),
                         room.getName(),
                         f);
-                client.sendMsg(msg, new Client.SendListener() {
-                    @Override
-                    public void onEnd(Msg msg) {
-                        onMsg(msg);
-                    }
-                });
+                onMsg(msg);
+                client.sendMsg(msg);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -579,13 +581,9 @@ class ClientWindow extends JFrame {
                                 room.getName(),
                                 text
                         );
-                        client.sendMsg(msg, new Client.SendListener() {
-                            @Override
-                            public void onEnd(Msg msg) {
-                                textArea.setText("");
-                                onMsg(msg);
-                            }
-                        });
+                        textArea.setText("");
+                        onMsg(msg);
+                        client.sendMsg(msg);
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
@@ -631,17 +629,21 @@ class ClientWindow extends JFrame {
         }
 
         @Override
-        public void onRoomGetMsg(Room room, Msg msg) {
-            Container parent = getParent();
-            // 聊天框还没有显示到界面，进行显示操作。
-            if (null == parent) {
-                jTabbedPane.addTab(room.getName(), this);
-                jTabbedPane.setTabComponentAt(jTabbedPane.indexOfComponent(this), getTabTitle(room.getName()));
-                jTabbedPane.setSelectedComponent(this);
-            }
-            if (msg != null) {
-                onMsg(msg);
-            }
+        public void onRoomGetMsg(final Room room, final Msg msg) {
+            SwingUtilities.invokeLater(new Runnable() {
+                @Override
+                public void run() {
+                    Container parent = getParent();
+                    // 聊天框还没有显示到界面，进行显示操作。
+                    if (null == parent) {
+                        jTabbedPane.addTab(room.getName(), TalkPanel.this);
+                        jTabbedPane.setTabComponentAt(jTabbedPane.indexOfComponent(TalkPanel.this), getTabTitle(room.getName()));
+                        jTabbedPane.setSelectedComponent(TalkPanel.this);
+                    }
+                    onMsg(msg);
+                }
+            });
+
         }
 
         // 聊天室中有成员更新名称。
@@ -740,12 +742,7 @@ class ClientWindow extends JFrame {
             int msgType = msg.getMsgHead().getMsgType();
             // 这个范围内的消息，属于用户消息
             if (0 < msgType && msgType <= 10) {
-                SwingUtilities.invokeLater(new Runnable() {
-                    @Override
-                    public void run() {
-                        onGetMsg(msg);
-                    }
-                });
+                onGetMsg(msg);
 
                 // 这个范围内的消息，属于系统消息
             } else if (10 < msgType && msgType <= 100) {
@@ -820,7 +817,7 @@ class ClientWindow extends JFrame {
         }
     }
 
-    class MsgItemView extends JPanel {
+    class MsgItemView extends JPanel implements Msg.SendListener {
 
         BufferedImage reduceImage(InputStream inputStream) {
             int showW = 130;
@@ -853,12 +850,17 @@ class ClientWindow extends JFrame {
         private int index;
         private boolean isme;
         private SimpleDateFormat simpleDateFormat;
+        private JLabel sendStatusLabel; // 消息发送状态展示框框
+        private JLabel picLabel; // 显示图片的。
+        private JLabel fileLabel; // 显示文件的区域。
+        private JPanel filePanel; // 文件信息查看容器。
 
         MsgItemView(Msg msg, int index) {
             super(new BorderLayout());
             setBackground(Color.WHITE);
             this.index = index;
             this.msg = msg;
+            this.msg.setSendListener(this);
             this.isme = msg.getMsgHead().getFromClientId().equals(client.getClientId());
             simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss", Locale.CHINA);
 
@@ -881,10 +883,18 @@ class ClientWindow extends JFrame {
             // 消息发出时间
             JLabel timeLabel = new JLabel(simpleDateFormat.format(new Date(msg.getMsgHead().getCreateAt())));
             timeLabel.setFont(new Font(timeLabel.getFont().getName(), timeLabel.getFont().getStyle(), timeLabel.getFont().getSize() - 2));
-            timeLabel.setBorder(BorderFactory.createEmptyBorder(7, 0, 0, 5));
+            timeLabel.setBorder(BorderFactory.createEmptyBorder(6, 0, 0, 5));
             timeLabel.setForeground(Color.GRAY);
             infoPanel.add(timeLabel);
 
+            // 消息状态 (文本消息不显示状态)
+            if (msg.getMsgHead().getMsgType() != MsgHead.TYPE_TXT) {
+                sendStatusLabel = new JLabel(isme ? "发送中..." : "接收中...");
+                sendStatusLabel.setBorder(BorderFactory.createEmptyBorder(6, 0, 0, 5));
+                sendStatusLabel.setFont(new Font(sendStatusLabel.getFont().getName(), sendStatusLabel.getFont().getStyle(), sendStatusLabel.getFont().getSize() - 2));
+                sendStatusLabel.setForeground(Color.GRAY);
+                infoPanel.add(sendStatusLabel);
+            }
             add(infoPanel, BorderLayout.NORTH);
 
 
@@ -896,47 +906,30 @@ class ClientWindow extends JFrame {
                 txtLabel.setBorder(BorderFactory.createEmptyBorder(0, 5, 2, 5));
                 add(txtLabel);
             } else if (type == MsgHead.TYPE_PIC) {
-                JLabel picLabel = new JLabel();
+                picLabel = new JLabel();
                 picLabel.setBorder(BorderFactory.createEmptyBorder(0, 5, 2, 5));
                 try {
                     if (isme) {
                         picLabel.setIcon(new ImageIcon(reduceImage(new FileInputStream(msg.getMsgBody().getSendFile()))));
-                    } else {
-                        picLabel.setIcon(new ImageIcon(reduceImage(new FileInputStream(msg.getMsgBody().getReceiveFile()))));
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
                 add(picLabel, BorderLayout.CENTER);
             } else if (type == MsgHead.TYPE_FILE) {
-                JPanel filePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+                filePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
                 filePanel.setBackground(Color.WHITE);
-                JLabel fileLabel = new JLabel();
+                fileLabel = new JLabel();
                 fileLabel.setBorder(BorderFactory.createEmptyBorder(0, 5, 2, 5));
+                filePanel.add(fileLabel);
                 if (isme) {
                     fileLabel.setText("发送文件<" + msg.getMsgHead().getExtra() + ">");
                 } else {
                     fileLabel.setText("收到文件<" + msg.getMsgHead().getExtra() + ">");
                 }
-                filePanel.add(fileLabel);
-
-                JLabel seeFileLabel = new JLabel("点击查看");
-                seeFileLabel.setForeground(Color.BLUE);
-                seeFileLabel.setToolTipText("在文件浏览器中查看该文件");
-                seeFileLabel.setBorder(new UnderLineBorder());
-                seeFileLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-                seeFileLabel.addMouseListener(new MouseAdapter() {
-                    @Override
-                    public void mouseClicked(MouseEvent e) {
-                        super.mouseClicked(e);
-                        try {
-                            Runtime.getRuntime().exec("explorer /e,/select," + (isme ? msg.getMsgBody().getSendFile() : msg.getMsgBody().getReceiveFile()).getCanonicalPath());
-                        } catch (Exception e1) {
-                            e1.printStackTrace();
-                        }
-                    }
-                });
-                filePanel.add(seeFileLabel);
+                if (isme) {
+                    initFileView();
+                }
 
                 add(filePanel, BorderLayout.CENTER);
             } else {
@@ -947,7 +940,71 @@ class ClientWindow extends JFrame {
 
         }
 
+        private void initFileView () {
+            JLabel seeFileLabel = new JLabel("点击查看");
+            seeFileLabel.setForeground(Color.BLUE);
+            seeFileLabel.setToolTipText("在文件浏览器中查看该文件");
+            seeFileLabel.setBorder(new UnderLineBorder());
+            seeFileLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+            seeFileLabel.addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseClicked(MouseEvent e) {
+                    super.mouseClicked(e);
+                    try {
+                        Runtime.getRuntime().exec("explorer /e,/select," + (isme ? msg.getMsgBody().getSendFile() : msg.getMsgBody().getReceiveFile()).getCanonicalPath());
+                    } catch (Exception e1) {
+                        e1.printStackTrace();
+                    }
+                }
+            });
+            filePanel.add(seeFileLabel);
+            fileLabel.updateUI();
+        }
 
+        @Override
+        public void onEnd(final Msg msg) {
+            if (sendStatusLabel != null) {
+                final int msgType = msg.getMsgHead().getMsgType();
+                SwingUtilities.invokeLater(new Runnable() {
+                    @Override
+                    public void run() {
+                        sendStatusLabel.setForeground(Color.GREEN);
+                        sendStatusLabel.setText(isme ? "发送成功" : "接收成功");
+                        if (isme) {
+                            return;
+                        }
+                        if (msgType == MsgHead.TYPE_PIC) {
+                            try {
+                                picLabel.setIcon(new ImageIcon(reduceImage(new FileInputStream(msg.getMsgBody().getReceiveFile()))));
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                        } else if (msgType == MsgHead.TYPE_FILE) {
+                                initFileView();
+                        }
+                        ((JViewport)getParent().getParent()).setViewPosition(new Point(0, Integer.MAX_VALUE));
+                    }
+                });
+                Task.TaskHelper.getInstance().run(new Task.ITask<Object, Object>() {
+                    @Override
+                    public Object run(Object param) throws Exception {
+                        Thread.sleep(1500);
+                        return null;
+                    }
+
+                    @Override
+                    public void afterRun(Object value) {
+                        super.afterRun(value);
+                        SwingUtilities.invokeLater(new Runnable() {
+                            @Override
+                            public void run() {
+                                sendStatusLabel.setText("");
+                            }
+                        });
+                    }
+                });
+            }
+        }
     }
 }
 
