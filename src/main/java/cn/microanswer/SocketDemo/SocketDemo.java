@@ -15,8 +15,6 @@ public class SocketDemo {
      * 程序入口。
      */
     public static void main(String args[]) {
-
-
         /*
          * 此 Demo 演示流程：
          *

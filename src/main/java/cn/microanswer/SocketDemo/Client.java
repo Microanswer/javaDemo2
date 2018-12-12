@@ -97,19 +97,21 @@ public class Client extends Thread {
 
             while (socket.isConnected() && !socket.isClosed() && !socket.isOutputShutdown()) {
                 Msg msg = new Msg(inputStream);
-                MsgHead msgHead = msg.getMsgHead();
-                int msgType = msgHead.getMsgType();
-                if ((2 <= msgType && msgType <= 5) || msgHead.getContentLength() > 500 * 1024) { // 涉及大文件的消息，先回调，后读取数据，
-                    onMsg(msg);
-                    msg._readBodyFromSocketInputStream(inputStream);
-                } else { // 消息内容很小，直接读取完内容，再进行回调。
-                    msg._readBodyFromSocketInputStream(inputStream);
-                    onMsg(msg);
-                }
+                // MsgHead msgHead = msg.getMsgHead();
+                // int msgType = msgHead.getMsgType();
+                // if ((2 <= msgType && msgType <= 5) || msgHead.getContentLength() > 500 * 1024) { // 涉及大文件的消息，先回调，后读取数据，
+                onMsg(msg);
+                msg._readBodyFromSocketInputStream(inputStream);
+                // } else { // 消息内容很小，直接读取完内容，再进行回调。
+                //     msg._readBodyFromSocketInputStream(inputStream);
+                //     onMsg(msg);
+                // }
             }
         } catch (Exception e) {
             String message = e.getMessage();
-            if ("Socket closed".equals(message) || "socket closed".equals(message)) {
+            if ("Socket closed".equals(message) ||
+                    "socket closed".equals(message) ||
+                    "Connection reset".equals(message)) {
                 // 客户端关闭了，此错误不用处理任何事情，继续向下执行即可。
             } else {
                 onError(e);
@@ -163,15 +165,20 @@ public class Client extends Thread {
 
         // 接收到初始化客户端id和名称的消息。该消息为底层消息。不暴露给外部。
         if (msgType == MsgHead.TYPE_SYSTEM_SETNAME_ID) {
-            String text = msg.getText();
-            JSONObject object = JSON.parseObject(text);
-            if (!Utils.isStringEmpty(object.getString("name"))) {
-                clientNamme = object.getString("name");
-            }
-            if (!Utils.isStringEmpty(object.getString("id"))) {
-                clientId = object.getString("id");
-            }
-            onNamed();
+            msg.setSendListener(new Msg.SendListener() {
+                @Override
+                public void onEnd(Msg msg) {
+                    String text = msg.getText();
+                    JSONObject object = JSON.parseObject(text);
+                    if (!Utils.isStringEmpty(object.getString("name"))) {
+                        clientNamme = object.getString("name");
+                    }
+                    if (!Utils.isStringEmpty(object.getString("id"))) {
+                        clientId = object.getString("id");
+                    }
+                    onNamed();
+                }
+            });
             return;
         }
 
@@ -197,22 +204,18 @@ public class Client extends Thread {
     }
 
     final void sendMsg(final Msg msg) {
-        try {
-            Task.TaskHelper.getInstance().run(new Task.ITask<Msg, Msg>() {
-                @Override
-                public Msg getParam() {
-                    return msg;
-                }
+        Task.TaskHelper.getInstance().run(new Task.ITask<Msg, Msg>() {
+            @Override
+            public Msg getParam() {
+                return msg;
+            }
 
-                @Override
-                public Msg run(Msg msg) throws Exception {
-                    msg.write(outputStream);
-                    return msg;
-                }
-            });
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+            @Override
+            public Msg run(Msg msg) throws Exception {
+                msg.write(outputStream);
+                return msg;
+            }
+        });
     }
 
     void colse() {

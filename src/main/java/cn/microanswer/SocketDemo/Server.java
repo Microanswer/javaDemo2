@@ -125,101 +125,119 @@ public class Server extends Thread {
      * @param client
      * @param msg
      */
-    void onClientMsg(Client client, Msg msg) {
+    void onClientMsg(final Client client, final Msg msg) {
 
         // 这个范围内的消息，属于系统消息
-        int msgType = msg.getMsgHead().getMsgType();
+        final int msgType = msg.getMsgHead().getMsgType();
         if (10 < msgType && msgType <= 100) {
+            msg.setSendListener(new Msg.SendListener() {
+                @Override
+                public void onEnd(Msg msg) {
+                    if (msgType == MsgHead.TYPE_SYSTEM_REQUEST_ALL_USER) {
+                        // 客户端请求获取所有在线人员。
 
-            if (msgType == MsgHead.TYPE_SYSTEM_REQUEST_ALL_USER) {
-                // 客户端请求获取所有在线人员。
-
-                JSONArray jsonArray = new JSONArray();
-                Set<Map.Entry<String, Client>> entries = clients.entrySet();
-                for (Map.Entry<String, Client> ent : entries) {
-                    JSONObject jo = new JSONObject();
-                    Client value = ent.getValue();
-                    jo.put("name", value.getClientNamme());
-                    jo.put("id", value.getClientId());
-                    jsonArray.add(jo);
-                }
-                client.sendMsg(Client.CreateSystemMsg(
-                        MsgHead.TYPE_SYSTEM_REQUEST_ALL_USER,
-                        client.getClientId(),
-                        jsonArray.toJSONString()
-                        )
-                );
-
-            } else if (msgType == MsgHead.TYPE_SYSTEM_CREATE_ROOM) {
-                // 客户端请求创建聊天室。
-
-                // 获取请求的数据
-                String text = msg.getText();
-                JSONObject data = JSON.parseObject(text);
-                JSONArray others = data.getJSONArray("others"); // 要加入聊天室的对方成员
-
-                if (Utils.isListEmpty(others)) {
-                    client.sendMsg(Client.CreateSystemMsg(
-                            MsgHead.TYPE_SYSTEM_CREATE_ROOM,
-                            client.getClientId(),
-                            "false"
-                    )); // 发送给客户端，聊天室创建失败。 必须要有与之聊天的其他人。
-                    return;
-                }
-
-                String roomName = "";
-                if (others.size() == 1) {
-                    JSONObject jsonObject = others.getJSONObject(0);
-                    roomName = jsonObject.getString("name");
-                } else {
-                    JSONObject j1 = others.getJSONObject(0);
-                    JSONObject j2 = others.getJSONObject(1);
-                    roomName = j1.getString("name") + "、" + j2.getString("name");
-                }
-                if (others.size() >= 2) {
-                    roomName += "等";
-                }
-
-                Room room = new Room("", roomName);
-                room.setRoomListener(new ServerRoomListener());
-                room.addMember(new Room.Member(client.getClientId(), client.getClientNamme()));
-                for (int i = 0; i < others.size(); i++) {
-                    JSONObject j = others.getJSONObject(i);
-                    room.addMember(new Room.Member(j.getString("id"), j.getString("name")));
-                }
-                ArrayList<Room.Member> members = room.getMembers();
-                room.setSignle(members.size() <= 2);
-                Collections.sort(members);
-                room.setId(Utils.md5(JSON.toJSONString(members)));
-
-                // 判断这个房间是否已存在。
-                boolean has = rooms.containsKey(room.getId());
-                if (!has) {
-                    // 将创建好的 Room 放入管理列队
-                    rooms.put(room.getId(), room);
-                } else {
-                    room = rooms.get(room.getId());
-                }
-                // 响应客户端聊天室创建成功，并返回聊天室成员。
-                client.sendMsg(
-                        Client.CreateSystemMsg(
-                                MsgHead.TYPE_SYSTEM_CREATE_ROOM,
+                        JSONArray jsonArray = new JSONArray();
+                        Set<Map.Entry<String, Client>> entries = clients.entrySet();
+                        for (Map.Entry<String, Client> ent : entries) {
+                            JSONObject jo = new JSONObject();
+                            Client value = ent.getValue();
+                            jo.put("name", value.getClientNamme());
+                            jo.put("id", value.getClientId());
+                            jsonArray.add(jo);
+                        }
+                        client.sendMsg(Client.CreateSystemMsg(
+                                MsgHead.TYPE_SYSTEM_REQUEST_ALL_USER,
                                 client.getClientId(),
-                                JSON.toJSONString(room)
-                        )
-                );
-            } else if (msgType == MsgHead.TYPE_SYSTEM_REQUEST_EXIT) {
-                // 客户端请求下线。
-                client.disConn();
-            }
+                                jsonArray.toJSONString()
+                                )
+                        );
 
+                    } else if (msgType == MsgHead.TYPE_SYSTEM_CREATE_ROOM) {
+                        // 客户端请求创建聊天室。
 
+                        // 获取请求的数据
+                        String text = msg.getText();
+                        JSONObject data = JSON.parseObject(text);
+                        JSONArray others = data.getJSONArray("others"); // 要加入聊天室的对方成员
+
+                        if (Utils.isListEmpty(others)) {
+                            client.sendMsg(Client.CreateSystemMsg(
+                                    MsgHead.TYPE_SYSTEM_CREATE_ROOM,
+                                    client.getClientId(),
+                                    "false"
+                            )); // 发送给客户端，聊天室创建失败。 必须要有与之聊天的其他人。
+                            return;
+                        }
+
+                        String roomName = "";
+                        if (others.size() == 1) {
+                            JSONObject jsonObject = others.getJSONObject(0);
+                            roomName = jsonObject.getString("name");
+                        } else {
+                            JSONObject j1 = others.getJSONObject(0);
+                            JSONObject j2 = others.getJSONObject(1);
+                            roomName = j1.getString("name") + "、" + j2.getString("name");
+                        }
+                        if (others.size() >= 2) {
+                            roomName += "等";
+                        }
+
+                        Room room = new Room("", roomName);
+                        room.setRoomListener(new ServerRoomListener());
+                        room.addMember(new Room.Member(client.getClientId(), client.getClientNamme()));
+                        for (int i = 0; i < others.size(); i++) {
+                            JSONObject j = others.getJSONObject(i);
+                            room.addMember(new Room.Member(j.getString("id"), j.getString("name")));
+                        }
+                        ArrayList<Room.Member> members = room.getMembers();
+                        room.setSignle(members.size() <= 2);
+                        Collections.sort(members);
+                        room.setId(Utils.md5(JSON.toJSONString(members)));
+
+                        // 判断这个房间是否已存在。
+                        boolean has = rooms.containsKey(room.getId());
+                        if (!has) {
+                            // 将创建好的 Room 放入管理列队
+                            rooms.put(room.getId(), room);
+                        } else {
+                            room = rooms.get(room.getId());
+
+                            // 注意： 用户请求创建这个房间时，发现这个房间已存在。那么说明此前有别的用户创建过
+                            //       和此人的聊天。此时房间的名称是以上一个创建的人来说的，所以此时房间的名称应该是上一个
+                            //       人的名称。对此用户来说比较友好一点。
+
+                            ArrayList<Room.Member> members1 = room.getMembers();
+                            if (members1.size() == 2) {
+                                int index = 0;
+                                for (int i = 0; i < 2; i++) {
+                                    Room.Member member = members1.get(i);
+                                    if (member.getName().equals(room.getName())) {
+                                        index = i;
+                                        break;
+                                    }
+                                }
+                                room = new Room(room.getId(), members1.get(1 - index).getName());
+                            }
+                        }
+                        // 响应客户端聊天室创建成功，并返回聊天室成员。
+                        client.sendMsg(
+                                Client.CreateSystemMsg(
+                                        MsgHead.TYPE_SYSTEM_CREATE_ROOM,
+                                        client.getClientId(),
+                                        JSON.toJSONString(room)
+                                )
+                        );
+                    } else if (msgType == MsgHead.TYPE_SYSTEM_REQUEST_EXIT) {
+                        // 客户端请求下线。
+                        client.disConn();
+                    }
+                }
+            });
             // 这个范围内的消息，属于用户消息
         } else if (0 < msgType && msgType <= 10) {
             // 获取消息的目标聊天室
             String toRoomId = msg.getMsgHead().getToClientId();
             String toRoomName = msg.getMsgHead().getToName();
-
             Room room = rooms.get(toRoomId);
             if (room != null) {
                 // 将消息分发到各个聊天室成员
@@ -411,35 +429,33 @@ public class Server extends Thread {
 
         @Override
         public void onMsg(final Client client, final Msg msg) {
-            SwingUtilities.invokeLater(new Runnable() {
-                @Override
-                public void run() {
-
-                    onClientMsg(client, msg);
-                }
-            });
+            onClientMsg(client, msg);
         }
     };
 
     private class ServerRoomListener implements Room.RoomListener {
 
         @Override
-        public void onRoomGetMsg(Room room, Msg msg) {
+        public void onRoomGetMsg(final Room room, Msg msg) {
             // 获取聊天室中所有的成员然后进行成员的消息分发。 不将消息再分发给发件人。
-
-            ArrayList<Room.Member> otherMember = room.getMembers();
-            for (Room.Member m : otherMember) {
-                String id = m.getId();
-                if (msg.getMsgHead().getFromClientId().equals(id)) {
-                    continue;
+            msg.setSendListener(new Msg.SendListener() {
+                @Override
+                public void onEnd(Msg msg) {
+                    ArrayList<Room.Member> otherMember = room.getMembers();
+                    for (Room.Member m : otherMember) {
+                        String id = m.getId();
+                        if (msg.getMsgHead().getFromClientId().equals(id)) {
+                            continue;
+                        }
+                        Client client = clients.get(id);
+                        if (client.isAlive()) {
+                            client.sendMsg(msg);
+                        } else {
+                            System.out.println("消息发送失败，" + client.getClientNamme() + " 已下线。");
+                        }
+                    }
                 }
-                Client client = clients.get(id);
-                if (client.isAlive()) {
-                    client.sendMsg(msg);
-                } else {
-                    System.out.println("消息发送失败，" + client.getClientNamme() + " 已下线。");
-                }
-            }
+            });
         }
 
         @Override

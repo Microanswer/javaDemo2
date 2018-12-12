@@ -284,7 +284,7 @@ class ClientWindow extends JFrame {
      *
      * @param msg 消息内容
      */
-    private void onGetMsg(Msg msg) {
+    private void onGetMsg(final Msg msg) {
         final String fromName = msg.getMsgHead().getFromName();
         final String fromId = msg.getMsgHead().getFromClientId();
         final String roomId = msg.getMsgHead().getToClientId();
@@ -298,20 +298,15 @@ class ClientWindow extends JFrame {
             // 聊天列队中没有这个聊天室，则创建出这个聊天室
             room.addMember(new Room.Member(client.getClientId(), client.getClientNamme()));
             room.addMember(fromMember);
-            final Room finalRoom = room;
-            SwingUtilities.invokeLater(new Runnable() {
-                @Override
-                public void run() {
-                    finalRoom.setRoomListener(new TalkPanel(finalRoom));
-                    talkingRooms.put(roomId, finalRoom);
-                }
-            });
+            talkingRooms.put(roomId, room);
         }
         // 检查聊天室中是否有发件人的信息，如果没有，则将其加入
         if (!room.getMembers().contains(fromMember)) {
             room.getMembers().add(fromMember);
         }
-
+        if (room.getRoomListener() == null) {
+            room.setRoomListener(new TalkPanel(room));
+        }
         room.dispatchMsg(msg);
     }
 
@@ -338,9 +333,11 @@ class ClientWindow extends JFrame {
             room.setRoomListener(new TalkPanel(room));
             talkingRooms.put(room.getId(), room);
         } else {
-            Room room1 = talkingRooms.get(room.getId());
-            room1.dispatchMsg(null);
+            room = talkingRooms.get(room.getId());
         }
+
+        // 让界面显示出来。
+        room.dispatchMsg(null);
     }
 
     /**
@@ -483,23 +480,17 @@ class ClientWindow extends JFrame {
 
         TalkPanel(Room room) {
             super(new BorderLayout());
-
             this.room = room;
             setBackground(Color.WHITE);
-
             this.initUI();
-
-            // 将 tab 添加到 界面
-            jTabbedPane.addTab(room.getName(), this);
-            jTabbedPane.setTabComponentAt(jTabbedPane.indexOfComponent(this), getTabTitle(room.getName()));
-            jTabbedPane.setSelectedComponent(this);
         }
 
         void initUI() {
 
             // 中间显示聊天记录
             msgs = new ArrayList<>();
-            msgListPanel = new JPanel(new LinearLayout());
+            msgListPanel = new JPanel();
+            msgListPanel.setLayout(new LinearLayout());
             msgListPanel.setBackground(Color.WHITE);
             scrollPane = new JScrollPane(msgListPanel);
             scrollPane.setBackground(Color.WHITE);
@@ -593,11 +584,16 @@ class ClientWindow extends JFrame {
 
         void onMsg(Msg msg) {
             msgs.add(msg);
-            MsgItemView itemView = new MsgItemView(msg, msgs.size() - 1);
-            msgListPanel.add(itemView);
-            scrollPane.updateUI();
-            scrollPane.getViewport().setViewPosition(new Point(0, Integer.MAX_VALUE));
-            TalkPanel.this.grabFocus();
+            final MsgItemView itemView = new MsgItemView(msg, msgs.size() - 1);
+            SwingUtilities.invokeLater(new Runnable() {
+                @Override
+                public void run() {
+                    msgListPanel.add(itemView);
+                    scrollPane.updateUI();
+                    scrollPane.getViewport().setViewPosition(new Point(0, Integer.MAX_VALUE));
+                    TalkPanel.this.grabFocus();
+                }
+            });
         }
 
         private Component getTabTitle(String tabName) {
@@ -640,10 +636,11 @@ class ClientWindow extends JFrame {
                         jTabbedPane.setTabComponentAt(jTabbedPane.indexOfComponent(TalkPanel.this), getTabTitle(room.getName()));
                         jTabbedPane.setSelectedComponent(TalkPanel.this);
                     }
-                    onMsg(msg);
                 }
             });
-
+            if (msg != null) {
+                onMsg(msg);
+            }
         }
 
         // 聊天室中有成员更新名称。
@@ -669,6 +666,228 @@ class ClientWindow extends JFrame {
             // 弹出提示
             if (jTabbedPane.getSelectedIndex() == jTabbedPane.indexOfComponent(this)) {
                 JOptionPane.showMessageDialog(ClientWindow.this, "对方已下线");
+            }
+        }
+
+        class MsgItemView extends JPanel implements Msg.SendListener {
+
+            BufferedImage reduceImage(InputStream inputStream) {
+                int showW = 130;
+                int showH;
+                try {
+                    // 构造Image对象
+                    BufferedImage src = javax.imageio.ImageIO.read(inputStream);
+                    int width = src.getWidth();
+                    int height = src.getHeight();
+
+                    if (width > showW) {
+                        showH = Math.round(130 * (height / (float) width));
+                    } else {
+                        showW = width;
+                        showH = height;
+                    }
+                    // 缩小边长
+                    BufferedImage tag = new BufferedImage(showW, showH, src.getType());
+                    // 绘制 缩小  后的图片
+                    tag.getGraphics().drawImage(src, 0, 0, tag.getWidth(), tag.getHeight(), null);
+                    inputStream.close();
+                    return tag;
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                return null;
+            }
+
+            private Msg msg;
+            private int index;
+            private boolean isme;
+            private SimpleDateFormat simpleDateFormat;
+            private JLabel sendStatusLabel; // 消息发送状态展示框框
+            private JLabel txtLabel; // 文本消息的。
+            private JLabel seeFileLabel; // 查看文件的按钮。
+            private JLabel picLabel; // 显示图片的。
+
+            MsgItemView(Msg msg, int index) {
+                setBackground(Color.WHITE);
+                this.index = index;
+                this.msg = msg;
+                this.msg.setSendListener(this);
+                this.isme = msg.getMsgHead().getFromClientId().equals(client.getClientId());
+                simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss", Locale.CHINA);
+
+                initView();
+            }
+
+            void initView() {
+                setLayout(new BorderLayout(0, 0));
+
+                JPanel infoPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+                infoPanel.setBackground(Color.WHITE);
+
+                // 消息发出者
+                JLabel fromLabel = new JLabel("<html><b>" + (isme ? "我说" : msg.getMsgHead().getFromName()) + "</b></html>");
+                fromLabel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+                if (!isme) {
+                    fromLabel.setForeground(Color.BLUE);
+                }
+                infoPanel.add(fromLabel);
+
+                // 消息发出时间
+                JLabel timeLabel = new JLabel(simpleDateFormat.format(new Date(msg.getMsgHead().getCreateAt())));
+                timeLabel.setFont(new Font(timeLabel.getFont().getName(), timeLabel.getFont().getStyle(), timeLabel.getFont().getSize() - 2));
+                timeLabel.setBorder(BorderFactory.createEmptyBorder(6, 0, 0, 5));
+                timeLabel.setForeground(Color.GRAY);
+                infoPanel.add(timeLabel);
+
+                // 消息状态
+                sendStatusLabel = new JLabel(isme ? "发送中..." : "接收中...");
+                sendStatusLabel.setBorder(BorderFactory.createEmptyBorder(6, 0, 0, 5));
+                sendStatusLabel.setFont(new Font(sendStatusLabel.getFont().getName(), sendStatusLabel.getFont().getStyle(), sendStatusLabel.getFont().getSize() - 2));
+                sendStatusLabel.setForeground(Color.GRAY);
+                infoPanel.add(sendStatusLabel);
+
+                add(infoPanel, BorderLayout.NORTH);
+
+
+                // 文本消息
+                int type = msg.getMsgHead().getMsgType();
+
+                if (type == MsgHead.TYPE_TXT) {
+                    if (isme) {
+                        txtLabel = new JLabel("<html><p>" + msg.getText() + "</p></html>");
+                    } else {
+                        txtLabel = new JLabel();
+                    }
+                    txtLabel.setBorder(BorderFactory.createEmptyBorder(0, 5, 2, 5));
+                    JPanel j = new JPanel(new BorderLayout());
+                    j.setBackground(Color.WHITE);
+                    j.add(txtLabel);
+                    add(j);
+                } else if (type == MsgHead.TYPE_PIC) {
+                    picLabel = new JLabel();
+                    picLabel.setBorder(BorderFactory.createEmptyBorder(0, 5, 2, 5));
+                    try {
+                        if (isme) {
+                            picLabel.setIcon(new ImageIcon(reduceImage(new FileInputStream(msg.getMsgBody().getSendFile()))));
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                    add(picLabel);
+                } else if (type == MsgHead.TYPE_FILE) {
+                    JPanel filePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+                    filePanel.setBackground(Color.WHITE);
+                    JLabel fileLabel = new JLabel();
+                    fileLabel.setBorder(BorderFactory.createEmptyBorder(0, 5, 2, 5));
+                    filePanel.add(fileLabel);
+                    if (isme) {
+                        fileLabel.setText("发送文件<" + msg.getMsgHead().getExtra() + ">");
+                    } else {
+                        fileLabel.setText("收到文件<" + msg.getMsgHead().getExtra() + ">");
+                    }
+                    seeFileLabel = new JLabel("点击查看");
+                    if (isme) {
+                        seeFileLabel.setEnabled(true);
+                        seeFileLabel.setForeground(Color.BLUE);
+                    } else {
+                        seeFileLabel.setEnabled(false);
+                        seeFileLabel.setForeground(Color.GRAY);
+                    }
+                    seeFileLabel.setToolTipText("在文件浏览器中查看该文件");
+                    seeFileLabel.setBorder(new UnderLineBorder());
+                    seeFileLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+                    seeFileLabel.addMouseListener(new MouseAdapter() {
+                        @Override
+                        public void mouseClicked(MouseEvent e) {
+                            super.mouseClicked(e);
+                            if (!seeFileLabel.isEnabled()) {
+                                return;
+                            }
+                            try {
+                                Runtime.getRuntime().exec("explorer /e,/select," + (isme ? msg.getMsgBody().getSendFile() : msg.getMsgBody().getReceiveFile()).getCanonicalPath());
+                            } catch (Exception e1) {
+                                e1.printStackTrace();
+                            }
+                        }
+                    });
+                    filePanel.add(seeFileLabel);
+                    fileLabel.updateUI();
+
+                    add(filePanel);
+                } else {
+                    JLabel txtLabel;
+                    if (isme) {
+                        txtLabel = new JLabel(msg.getText());
+                    } else {
+                        txtLabel = new JLabel();
+                    }
+                    txtLabel.setBorder(BorderFactory.createEmptyBorder(0, 5, 2, 5));
+                    add(txtLabel);
+                }
+            }
+
+            @Override
+            public void onEnd(final Msg msg) {
+                if (sendStatusLabel != null) {
+                    final int msgType = msg.getMsgHead().getMsgType();
+                    SwingUtilities.invokeLater(new Runnable() {
+                        @Override
+                        public void run() {
+                            sendStatusLabel.setForeground(new Color(73, 156, 84));
+                            sendStatusLabel.setText(isme ? "发送成功" : "接收成功");
+                            if (isme) {
+                                return;
+                            }
+                            if (msgType == MsgHead.TYPE_TXT) {
+                                txtLabel.setText("<html><p>" + msg.getText() + "</p></html>");
+                            } else if (msgType == MsgHead.TYPE_PIC) {
+                                try {
+                                    picLabel.setIcon(new ImageIcon(reduceImage(new FileInputStream(msg.getMsgBody().getReceiveFile()))));
+                                } catch (Exception e) {
+                                    e.printStackTrace();
+                                }
+                            } else if (msgType == MsgHead.TYPE_FILE) {
+                                seeFileLabel.setEnabled(true);
+                                seeFileLabel.setForeground(Color.BLUE);
+                            }
+
+                            // SwingUtilities.invokeLater(new Runnable() {
+                            //     @Override
+                            //     public void run() {
+                            //         
+                            //     }
+                            // });
+
+                            SwingUtilities.invokeLater(new Runnable() {
+                                @Override
+                                public void run() {
+                                    scrollPane.updateUI();
+                                    msgListPanel.updateUI();
+                                }
+                            });
+                        }
+                    });
+                    Task.TaskHelper.getInstance().run(new Task.ITask<Object, Object>() {
+                        @Override
+                        public Object run(Object param) throws Exception {
+                            Thread.sleep(1500);
+                            return null;
+                        }
+
+                        @Override
+                        public void afterRun(Object value) {
+                            super.afterRun(value);
+                            SwingUtilities.invokeLater(new Runnable() {
+                                @Override
+                                public void run() {
+                                    sendStatusLabel.setText("");
+                                    scrollPane.updateUI();
+                                    msgListPanel.updateUI();
+                                }
+                            });
+                        }
+                    });
+                }
             }
         }
     }
@@ -739,272 +958,92 @@ class ClientWindow extends JFrame {
 
         @Override
         public void onMsg(final Client client, final Msg msg) {
-            int msgType = msg.getMsgHead().getMsgType();
+            final int msgType = msg.getMsgHead().getMsgType();
             // 这个范围内的消息，属于用户消息
             if (0 < msgType && msgType <= 10) {
                 onGetMsg(msg);
 
                 // 这个范围内的消息，属于系统消息
             } else if (10 < msgType && msgType <= 100) {
+                msg.setSendListener(new Msg.SendListener() {
+                    @Override
+                    public void onEnd(Msg msg) {
+                        // 服务器返回所有在线的成员。
+                        String text = msg.getText();
+                        if (msgType == MsgHead.TYPE_SYSTEM_REQUEST_ALL_USER) {
+                            final JSONArray objects = JSON.parseArray(text);
+                            SwingUtilities.invokeLater(new Runnable() {
+                                @Override
+                                public void run() {
+                                    onAllOnlieUserGeted(objects);
+                                }
+                            });
 
-                // 服务器返回所有在线的成员。
-                String text = msg.getText();
-                if (msgType == MsgHead.TYPE_SYSTEM_REQUEST_ALL_USER) {
-                    final JSONArray objects = JSON.parseArray(text);
-                    SwingUtilities.invokeLater(new Runnable() {
-                        @Override
-                        public void run() {
-                            onAllOnlieUserGeted(objects);
-                        }
-                    });
-
-                } else if (msgType == MsgHead.TYPE_SYSTEM_CREATE_ROOM) {
-                    // 服务器返回聊天室创建结果
-                    if ("false".equals(text)) {
-                        SwingUtilities.invokeLater(new Runnable() {
-                            @Override
-                            public void run() {
-                                onError(client, new Exception("聊天室创建失败，必须选择聊天对象。"));
+                        } else if (msgType == MsgHead.TYPE_SYSTEM_CREATE_ROOM) {
+                            // 服务器返回聊天室创建结果
+                            if ("false".equals(text)) {
+                                SwingUtilities.invokeLater(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        onError(client, new Exception("聊天室创建失败，必须选择聊天对象。"));
+                                    }
+                                });
+                                return;
                             }
-                        });
-                        return;
-                    }
 
-                    // 解析返回数据
-                    final Room room = JSON.parseObject(text, Room.class);
-                    SwingUtilities.invokeLater(new Runnable() {
-                        @Override
-                        public void run() {
-                            onRoomCreated(room);
+                            // 解析返回数据
+                            final Room room = JSON.parseObject(text, Room.class);
+                            SwingUtilities.invokeLater(new Runnable() {
+                                @Override
+                                public void run() {
+                                    onRoomCreated(room);
+                                }
+                            });
                         }
-                    });
-                }
+                    }
+                });
 
                 // 通知类消息
             } else if (100 < msgType && msgType <= 200) {
-                String text = msg.getText();
-                if (msgType == MsgHead.TYPE_NOTIFY_USER_ONLINE) {
-                    JSONObject info = JSON.parseObject(text);
-                    final String name = info.getString("name");
-                    final String id = info.getString("id");
-                    SwingUtilities.invokeLater(new Runnable() {
-                        @Override
-                        public void run() {
-                            onUserOnLine(new Room.Member(id, name));
+                msg.setSendListener(new Msg.SendListener() {
+                    @Override
+                    public void onEnd(final Msg msg) {
+                        String text = msg.getText();
+                        if (msgType == MsgHead.TYPE_NOTIFY_USER_ONLINE) {
+                            JSONObject info = JSON.parseObject(text);
+                            final String name = info.getString("name");
+                            final String id = info.getString("id");
+                            SwingUtilities.invokeLater(new Runnable() {
+                                @Override
+                                public void run() {
+                                    onUserOnLine(new Room.Member(id, name));
+                                }
+                            });
+                        } else if (msgType == MsgHead.TYPE_NOTIFY_USER_OFFLINE) {
+                            JSONObject info = JSON.parseObject(text);
+                            final String name = info.getString("name");
+                            final String id = info.getString("id");
+                            SwingUtilities.invokeLater(new Runnable() {
+                                @Override
+                                public void run() {
+                                    onUserOffLine(new Room.Member(id, name));
+                                }
+                            });
+                        } else if (msgType == MsgHead.TYPE_NOTIFY_USER_RENAMED) {
+                            final String newName = msg.getText();
+                            SwingUtilities.invokeLater(new Runnable() {
+                                @Override
+                                public void run() {
+                                    onUserRenamed(msg.getMsgHead().getFromClientId(), newName);
+                                }
+                            });
                         }
-                    });
-                } else if (msgType == MsgHead.TYPE_NOTIFY_USER_OFFLINE) {
-                    JSONObject info = JSON.parseObject(text);
-                    final String name = info.getString("name");
-                    final String id = info.getString("id");
-                    SwingUtilities.invokeLater(new Runnable() {
-                        @Override
-                        public void run() {
-                            onUserOffLine(new Room.Member(id, name));
-                        }
-                    });
-                } else if (msgType == MsgHead.TYPE_NOTIFY_USER_RENAMED) {
-                    final String newName = msg.getText();
-                    SwingUtilities.invokeLater(new Runnable() {
-                        @Override
-                        public void run() {
-                            onUserRenamed(msg.getMsgHead().getFromClientId(), newName);
-                        }
-                    });
-                }
+                    }
+                });
             }
 
         }
     }
 
-    class MsgItemView extends JPanel implements Msg.SendListener {
-
-        BufferedImage reduceImage(InputStream inputStream) {
-            int showW = 130;
-            int showH;
-            try {
-                // 构造Image对象
-                BufferedImage src = javax.imageio.ImageIO.read(inputStream);
-                int width = src.getWidth();
-                int height = src.getHeight();
-
-                if (width > showW) {
-                    showH = Math.round(130 * (height / (float) width));
-                } else {
-                    showW = width;
-                    showH = height;
-                }
-                // 缩小边长
-                BufferedImage tag = new BufferedImage(showW, showH, src.getType());
-                // 绘制 缩小  后的图片
-                tag.getGraphics().drawImage(src, 0, 0, tag.getWidth(), tag.getHeight(), null);
-                inputStream.close();
-                return tag;
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            return null;
-        }
-
-        private Msg msg;
-        private int index;
-        private boolean isme;
-        private SimpleDateFormat simpleDateFormat;
-        private JLabel sendStatusLabel; // 消息发送状态展示框框
-        private JLabel picLabel; // 显示图片的。
-        private JLabel fileLabel; // 显示文件的区域。
-        private JPanel filePanel; // 文件信息查看容器。
-
-        MsgItemView(Msg msg, int index) {
-            super(new BorderLayout());
-            setBackground(Color.WHITE);
-            this.index = index;
-            this.msg = msg;
-            this.msg.setSendListener(this);
-            this.isme = msg.getMsgHead().getFromClientId().equals(client.getClientId());
-            simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss", Locale.CHINA);
-
-            initView();
-        }
-
-        void initView() {
-
-            JPanel infoPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
-            infoPanel.setBackground(Color.WHITE);
-
-            // 消息发出者
-            JLabel fromLabel = new JLabel("<html><b>" + (isme ? "我说" : msg.getMsgHead().getFromName()) + "</b></html>");
-            fromLabel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-            if (!isme) {
-                fromLabel.setForeground(Color.BLUE);
-            }
-            infoPanel.add(fromLabel);
-
-            // 消息发出时间
-            JLabel timeLabel = new JLabel(simpleDateFormat.format(new Date(msg.getMsgHead().getCreateAt())));
-            timeLabel.setFont(new Font(timeLabel.getFont().getName(), timeLabel.getFont().getStyle(), timeLabel.getFont().getSize() - 2));
-            timeLabel.setBorder(BorderFactory.createEmptyBorder(6, 0, 0, 5));
-            timeLabel.setForeground(Color.GRAY);
-            infoPanel.add(timeLabel);
-
-            // 消息状态 (文本消息不显示状态)
-            if (msg.getMsgHead().getMsgType() != MsgHead.TYPE_TXT) {
-                sendStatusLabel = new JLabel(isme ? "发送中..." : "接收中...");
-                sendStatusLabel.setBorder(BorderFactory.createEmptyBorder(6, 0, 0, 5));
-                sendStatusLabel.setFont(new Font(sendStatusLabel.getFont().getName(), sendStatusLabel.getFont().getStyle(), sendStatusLabel.getFont().getSize() - 2));
-                sendStatusLabel.setForeground(Color.GRAY);
-                infoPanel.add(sendStatusLabel);
-            }
-            add(infoPanel, BorderLayout.NORTH);
-
-
-            // 文本消息
-            int type = msg.getMsgHead().getMsgType();
-
-            if (type == MsgHead.TYPE_TXT) {
-                JLabel txtLabel = new JLabel("<html><p>" + msg.getText() + "</p></html>");
-                txtLabel.setBorder(BorderFactory.createEmptyBorder(0, 5, 2, 5));
-                add(txtLabel);
-            } else if (type == MsgHead.TYPE_PIC) {
-                picLabel = new JLabel();
-                picLabel.setBorder(BorderFactory.createEmptyBorder(0, 5, 2, 5));
-                try {
-                    if (isme) {
-                        picLabel.setIcon(new ImageIcon(reduceImage(new FileInputStream(msg.getMsgBody().getSendFile()))));
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-                add(picLabel, BorderLayout.CENTER);
-            } else if (type == MsgHead.TYPE_FILE) {
-                filePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
-                filePanel.setBackground(Color.WHITE);
-                fileLabel = new JLabel();
-                fileLabel.setBorder(BorderFactory.createEmptyBorder(0, 5, 2, 5));
-                filePanel.add(fileLabel);
-                if (isme) {
-                    fileLabel.setText("发送文件<" + msg.getMsgHead().getExtra() + ">");
-                } else {
-                    fileLabel.setText("收到文件<" + msg.getMsgHead().getExtra() + ">");
-                }
-                if (isme) {
-                    initFileView();
-                }
-
-                add(filePanel, BorderLayout.CENTER);
-            } else {
-                JLabel txtLabel = new JLabel(msg.getText());
-                txtLabel.setBorder(BorderFactory.createEmptyBorder(0, 5, 2, 5));
-                add(txtLabel, BorderLayout.CENTER);
-            }
-
-        }
-
-        private void initFileView () {
-            JLabel seeFileLabel = new JLabel("点击查看");
-            seeFileLabel.setForeground(Color.BLUE);
-            seeFileLabel.setToolTipText("在文件浏览器中查看该文件");
-            seeFileLabel.setBorder(new UnderLineBorder());
-            seeFileLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-            seeFileLabel.addMouseListener(new MouseAdapter() {
-                @Override
-                public void mouseClicked(MouseEvent e) {
-                    super.mouseClicked(e);
-                    try {
-                        Runtime.getRuntime().exec("explorer /e,/select," + (isme ? msg.getMsgBody().getSendFile() : msg.getMsgBody().getReceiveFile()).getCanonicalPath());
-                    } catch (Exception e1) {
-                        e1.printStackTrace();
-                    }
-                }
-            });
-            filePanel.add(seeFileLabel);
-            fileLabel.updateUI();
-        }
-
-        @Override
-        public void onEnd(final Msg msg) {
-            if (sendStatusLabel != null) {
-                final int msgType = msg.getMsgHead().getMsgType();
-                SwingUtilities.invokeLater(new Runnable() {
-                    @Override
-                    public void run() {
-                        sendStatusLabel.setForeground(Color.GREEN);
-                        sendStatusLabel.setText(isme ? "发送成功" : "接收成功");
-                        if (isme) {
-                            return;
-                        }
-                        if (msgType == MsgHead.TYPE_PIC) {
-                            try {
-                                picLabel.setIcon(new ImageIcon(reduceImage(new FileInputStream(msg.getMsgBody().getReceiveFile()))));
-                            } catch (Exception e) {
-                                e.printStackTrace();
-                            }
-                        } else if (msgType == MsgHead.TYPE_FILE) {
-                                initFileView();
-                        }
-                        ((JViewport)getParent().getParent()).setViewPosition(new Point(0, Integer.MAX_VALUE));
-                    }
-                });
-                Task.TaskHelper.getInstance().run(new Task.ITask<Object, Object>() {
-                    @Override
-                    public Object run(Object param) throws Exception {
-                        Thread.sleep(1500);
-                        return null;
-                    }
-
-                    @Override
-                    public void afterRun(Object value) {
-                        super.afterRun(value);
-                        SwingUtilities.invokeLater(new Runnable() {
-                            @Override
-                            public void run() {
-                                sendStatusLabel.setText("");
-                            }
-                        });
-                    }
-                });
-            }
-        }
-    }
 }
 

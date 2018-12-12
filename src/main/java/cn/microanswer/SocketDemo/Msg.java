@@ -3,6 +3,7 @@ package cn.microanswer.SocketDemo;
 import com.alibaba.fastjson.JSON;
 
 import java.io.*;
+import java.util.ArrayList;
 import java.util.UUID;
 
 /**
@@ -23,7 +24,7 @@ class Msg {
     private MsgHead msgHead;
     private MsgBody msgBody;
     private String text = null; // 如果是文本消息，则此字段是文本内容。
-    private SendListener sendListener;
+    private ArrayList<SendListener> sendListeners;
 
     /**
      * 创建一个文件消息。通过此方式传送大文件 （图片、视频、音频、文件）
@@ -186,8 +187,10 @@ class Msg {
 
         isEnd = true;
         this.msgBody = msgBody;
-        if (sendListener != null) {
-            sendListener.onEnd(this);
+        if (sendListeners != null) {
+            for (SendListener s : sendListeners) {
+                s.onEnd(this);
+            }
         }
     }
 
@@ -268,9 +271,13 @@ class Msg {
                 Constant.deleteFile(msgBody.getReceiveFile());
             }
         }
-        isEnd = true;
-        if (sendListener != null) {
-            sendListener.onEnd(this);
+        if (!isEnd) {
+            isEnd = true;
+            if (sendListeners != null) {
+                for (SendListener s : sendListeners) {
+                    s.onEnd(this);
+                }
+            }
         }
     }
 
@@ -278,12 +285,15 @@ class Msg {
         return isEnd;
     }
 
-    public SendListener getSendListener() {
-        return sendListener;
+    public ArrayList<SendListener> getSendListener() {
+        return sendListeners;
     }
 
     public void setSendListener(SendListener sendListener) {
-        this.sendListener = sendListener;
+        if (this.sendListeners == null) {
+            this.sendListeners = new ArrayList<>();
+        }
+        this.sendListeners.add(sendListener);
     }
 
     interface SendListener {
