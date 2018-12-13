@@ -33,8 +33,7 @@ public class Test40 extends JFrame {
             jLabel.setBackground(Color.GRAY);
             f.add(jLabel);
         }
-        rootPane.add(f);
-
+        rootPane.add(f); // asd
     }
 
     /**
