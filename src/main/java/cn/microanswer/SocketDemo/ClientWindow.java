@@ -3,6 +3,7 @@ package cn.microanswer.SocketDemo;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import sun.swing.SwingUtilities2;
 
 import javax.swing.*;
 import javax.swing.event.ListSelectionEvent;
@@ -434,6 +435,8 @@ class ClientWindow extends JFrame {
         private JPanel msgListPanel;
         private JScrollPane scrollPane;
 
+        private String currentDir;
+
         ActionListener actionListener = new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -446,7 +449,7 @@ class ClientWindow extends JFrame {
                         textArea.setText("");
                     }
                 } else if (ACTION_COMMAND_CHOOSE_PIC.equals(actionCommand) || ACTION_COMMAND_CHOOSE_FILE.equals(actionCommand)) {
-                    JFileChooser jfc = new JFileChooser();
+                    JFileChooser jfc = new JFileChooser(currentDir);
                     jfc.setFileSelectionMode(JFileChooser.FILES_ONLY);
                     jfc.setFileFilter(new FileFilter() {
                         boolean isIneedFile(File f) {
@@ -466,12 +469,15 @@ class ClientWindow extends JFrame {
 
                         @Override
                         public String getDescription() {
-                            return ACTION_COMMAND_CHOOSE_FILE.equals(actionCommand) ? "" : "png,jpg,jpeg,gif,bmp";
+                            return ACTION_COMMAND_CHOOSE_FILE.equals(actionCommand) ? "所有文件" : "png,jpg,jpeg,gif,bmp";
                         }
                     });
                     jfc.showDialog(ClientWindow.this, Constant.SEND);
                     File selectedFile = jfc.getSelectedFile();
                     if (selectedFile != null) {
+                        try {
+                            currentDir = selectedFile.getParentFile().getCanonicalPath();
+                        }catch (Exception e22){e22.printStackTrace();}
                         sendFile(selectedFile, ACTION_COMMAND_CHOOSE_PIC.equals(actionCommand));
                     }
                 }
@@ -512,6 +518,7 @@ class ClientWindow extends JFrame {
             btn3.addActionListener(actionListener);
             funBtnsPanel.add(btn3);
             southPanel.add(funBtnsPanel, BorderLayout.NORTH);
+
             textArea = new JTextArea();
             textArea.setLineWrap(true);
             textArea.setWrapStyleWord(true);
@@ -522,6 +529,8 @@ class ClientWindow extends JFrame {
             jScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
             jScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
             southPanel.add(jScrollPane, BorderLayout.CENTER);
+
+
             JPanel sendBtnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
             JButton button1 = new JButton(Constant.CLEAR);
             button1.setActionCommand(ACTION_COMMAND_CLEAR);
@@ -689,7 +698,8 @@ class ClientWindow extends JFrame {
                     // 缩小边长
                     BufferedImage tag = new BufferedImage(showW, showH, src.getType());
                     // 绘制 缩小  后的图片
-                    tag.getGraphics().drawImage(src, 0, 0, tag.getWidth(), tag.getHeight(), null);
+                    Graphics graphics = tag.getGraphics();
+                    graphics.drawImage(src, 0, 0, tag.getWidth(), tag.getHeight(), null);
                     inputStream.close();
                     return tag;
                 } catch (Exception e) {
@@ -775,11 +785,11 @@ class ClientWindow extends JFrame {
                     }
                     add(picLabel);
                 } else if (type == MsgHead.TYPE_FILE) {
-                    JPanel filePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+                    JPanel filePanel = new JPanel(new BorderLayout(0, 0));
                     filePanel.setBackground(Color.WHITE);
                     JLabel fileLabel = new JLabel();
                     fileLabel.setBorder(BorderFactory.createEmptyBorder(0, 5, 2, 5));
-                    filePanel.add(fileLabel);
+                    filePanel.add(fileLabel, BorderLayout.NORTH);
                     if (isme) {
                         fileLabel.setText("发送文件<" + msg.getMsgHead().getExtra() + ">");
                     } else {
@@ -810,8 +820,11 @@ class ClientWindow extends JFrame {
                             }
                         }
                     });
-                    filePanel.add(seeFileLabel);
-                    fileLabel.updateUI();
+                    JPanel jP = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+                    jP.setBackground(Color.WHITE);
+                    jP.add(seeFileLabel);
+                    jP.setBorder(BorderFactory.createEmptyBorder(0, 5, 2, 5));
+                    filePanel.add(jP, BorderLayout.SOUTH);
 
                     add(filePanel);
                 } else {
@@ -851,20 +864,22 @@ class ClientWindow extends JFrame {
                                 seeFileLabel.setForeground(Color.BLUE);
                             }
 
-                            // SwingUtilities.invokeLater(new Runnable() {
-                            //     @Override
-                            //     public void run() {
-                            //         
-                            //     }
-                            // });
-
                             SwingUtilities.invokeLater(new Runnable() {
                                 @Override
                                 public void run() {
-                                    scrollPane.updateUI();
+                                    updateUI();
                                     msgListPanel.updateUI();
+                                    scrollPane.updateUI();
                                 }
                             });
+                            SwingUtilities.invokeLater(new Runnable() {
+                                @Override
+                                public void run() {
+                                    Point point = SwingUtilities.convertPoint(MsgItemView.this, MsgItemView.this.getX(), MsgItemView.this.getY(), scrollPane);
+                                    scrollPane.getViewport().setViewPosition(point);
+                                }
+                            });
+
                         }
                     });
                     Task.TaskHelper.getInstance().run(new Task.ITask<Object, Object>() {

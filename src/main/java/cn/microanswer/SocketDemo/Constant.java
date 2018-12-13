@@ -66,7 +66,7 @@ public class Constant {
     /**
      * 服务所在的端口
      */
-    static final int SERVER_PORT = 9456;
+    static final int SERVER_PORT = 9457;
 
     /**
      * 客户端窗口标题

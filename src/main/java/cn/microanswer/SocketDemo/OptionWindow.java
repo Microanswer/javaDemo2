@@ -140,6 +140,7 @@ public class OptionWindow extends JFrame {
             }
         });
         contentPane.add(jLabel);
+        contentPane.add(new JLabel("v2.0"));
     }
 
 }
