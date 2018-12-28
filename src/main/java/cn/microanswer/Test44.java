@@ -1,17 +1,120 @@
 package cn.microanswer;
 
 
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.List;
 
 public class Test44 {
+
+    public static void main(String[] args) {
+
+        printBoomInfo(new String[][]{
+                {"*","^","^","^"},
+                {"^","^","^","^"},
+                {"^","*","^","^"},
+                {"^","^","^","^"}
+        });
+    }
+
+    /**
+     * 打印扫雷信息。
+     * eg:
+     * 输入：
+     * *^^^
+     * ^^^^
+     * ^*^^
+     * ^^^^
+     * 将输出：100 2210 110 1110
+     *
+     * @param array
+     */
+    private static void printBoomInfo(String[][] array) {
+        for (int row = 0; row < array.length; row++) {
+            for (int col = 0; col < array[row].length; col++) {
+
+                // 如果这个位置本身是雷，则不输出。(这是根据示列的，示列上雷的位置没有输出，如果要输出，只要注释这2行即可)
+                String s = array[row][col];
+                if ("*".equals(s)) continue;
+
+
+                // 获取这个位置周围的所有元素。
+                String[] boomAtPosition = getBoomAtPosition(array, row, col);
+                // 获取这些原生中的炸弹个数并输出这个个数。
+                System.out.print(getBoomCount(boomAtPosition));
+            }
+            System.out.print(" ");
+        }
+
+    }
+
+    /**
+     * 获取某个位置 周围所有的雷。
+     *
+     * @param array    要从哪个数组中获取
+     * @param rowIndex 行号
+     * @param colIndex 列号
+     * @return 结果。
+     */
+    private static String[] getBoomAtPosition(String[][] array, int rowIndex, int colIndex) {
+
+        // 每个位置周围都有 8 个相邻的区域。 但是边界处除外。
+        // 故，此处先判断边界处。但是如何优雅的判断是否处于边界了呢？
+        // 方案一：可以写if语句挨个判断。
+        // 方案二：可以先不考虑是否在边界，全部按不在边界考虑，然后再根据是否下标越界处理。（要下标越界肯定就是边界了。）
+
+        // 使用 方案二。
+
+        // 先得出所有位置的定位。
+        int[][] positions = {
+                {rowIndex - 1, colIndex - 1}, {rowIndex - 1, colIndex}, {rowIndex - 1, colIndex + 1},
+                {rowIndex,     colIndex - 1},                           {rowIndex,     colIndex + 1},
+                {rowIndex + 1, colIndex - 1}, {rowIndex + 1, colIndex}, {rowIndex + 1, colIndex + 1},
+        };
+
+        // 然后将这些位置对应的字符放在数组中。
+
+        // 但是由于可能上方的位置存在越界现象(越 array 的界)，所以判断出上方越界的下标,然后取没有越界的。
+        String[] result = new String[8]; // 定义结果数组， 固定 8 的长度。
+        for (int i = 0; i < positions.length; i++) {
+
+            int mRowIndex = positions[i][0];
+            int mColIndex = positions[i][1];
+
+            if (mRowIndex < 0 || mColIndex < 0 || mRowIndex >= array.length || mColIndex >= array[0].length) {
+                // 这个里面的属于越界的。不加入计算。
+                // 不加入计算的情况，咱们使用 null 来占位数组。
+                result[i] = null;
+            } else {
+                result[i] = array[mRowIndex][mColIndex]; // 取具体的内容。
+            }
+        }
+
+        return result;
+    }
+
+    /**
+     * 获取某个位置的结果信息中有多少个炸弹。
+     * @param boomsAtLocation 通过 getBoomAtPosition() 方法得到的结果。
+     * @return 炸弹个数。
+     */
+    private static int getBoomCount(String[] boomsAtLocation) {
+        int count = 0;
+        for (int i = 0; i < boomsAtLocation.length; i++) {
+            String s = boomsAtLocation[i];
+            if ("*".equals(s)) {
+                count++;
+            }
+        }
+        return count;
+    }
 
     /**
      * @param args 主参数
      * @author Microanswer
      * @date 2018年12月24日 10:44:05
      */
-    public static void main(String[] args) throws Exception {
+    public static void main3(String[] args) throws Exception {
 
 
         // 计算 int 范围类的所有素数
@@ -102,4 +205,5 @@ public class Test44 {
         list.toArray(ara);
         return ara;
     }
+
 }

@@ -19,7 +19,7 @@ public class NewTest {
         String testSrcFileName = className + ".java";
         int index = 1;
 
-        File testJavaDir = new File("D:/project/javaDemo2/src/main/java/cn/microanswer");
+        File testJavaDir = new File("C:\\Users\\Microanswer\\Project\\javaDemo2\\src\\main\\java\\cn\\microanswer");
         File testJavaFile = new File(testJavaDir, testSrcFileName);
 
         while (testJavaFile.exists()) {
