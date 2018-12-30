@@ -1,8 +1,6 @@
 package cn.microanswer;
 
 
-import sun.swing.SwingUtilities2;
-
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
@@ -19,7 +17,7 @@ public class Test46 {
      * @date 2018年12月28日 18:07:50
      */
     public static void main(String[] args) throws Exception {
-        ArrayList<long[]> ints = printYHSJ(11);
+        ArrayList<long[]> ints = printYHSJ(16);
         printYHSJ("C:\\Users\\Micro\\Desktop\\yhsj.png", ints);
     }
 
@@ -98,7 +96,8 @@ public class Test46 {
                 String s = String.valueOf(row[i]);
 
                 graphics.setColor(Color.BLACK);
-                float fontStringWidth = SwingUtilities2.getFontStringWidth(s, graphics.getFontMetrics(), false);
+
+                float fontStringWidth = SwingUtilities.computeStringWidth(graphics.getFontMetrics(), s);
 
                 if (fontStringWidth >= eachNumWidth) {
                     graphics.setFont(new Font(
@@ -111,7 +110,7 @@ public class Test46 {
                 }
 
                 int fontSize = graphics.getFont().getSize();
-                fontStringWidth = SwingUtilities2.getFontStringWidth(s, graphics.getFontMetrics(),false);
+                fontStringWidth = SwingUtilities.computeStringWidth(graphics.getFontMetrics(), s);
                 graphics.drawString(
                         s,
                         startPositionX+1 + Math.round(eachNumWidth / 2f) - Math.round(fontStringWidth/2),
