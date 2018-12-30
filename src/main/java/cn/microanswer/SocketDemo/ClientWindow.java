@@ -3,7 +3,6 @@ package cn.microanswer.SocketDemo;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import sun.swing.SwingUtilities2;
 
 import javax.swing.*;
 import javax.swing.event.ListSelectionEvent;
@@ -477,7 +476,9 @@ class ClientWindow extends JFrame {
                     if (selectedFile != null) {
                         try {
                             currentDir = selectedFile.getParentFile().getCanonicalPath();
-                        }catch (Exception e22){e22.printStackTrace();}
+                        } catch (Exception e22) {
+                            e22.printStackTrace();
+                        }
                         sendFile(selectedFile, ACTION_COMMAND_CHOOSE_PIC.equals(actionCommand));
                     }
                 }

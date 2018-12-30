@@ -1,10 +1,5 @@
 package cn.microanswer;
 
-import com.sun.xml.internal.ws.policy.privateutil.PolicyUtils;
-
-import java.util.ArrayList;
-import java.util.Collections;
-
 public class Test5 {
     public static void main(String[] args) {
         System.out.println("第8题：" + fn(10));

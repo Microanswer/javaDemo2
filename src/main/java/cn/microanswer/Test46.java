@@ -1,7 +1,10 @@
 package cn.microanswer;
 
 
+import sun.swing.SwingUtilities2;
+
 import javax.imageio.ImageIO;
+import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -16,8 +19,8 @@ public class Test46 {
      * @date 2018年12月28日 18:07:50
      */
     public static void main(String[] args) throws Exception {
-        ArrayList<int[]> ints = printYHSJ(10);
-        printYHSJ("C:\\Users\\Microanswer\\Desktop\\yhsj.png", ints);
+        ArrayList<long[]> ints = printYHSJ(11);
+        printYHSJ("C:\\Users\\Micro\\Desktop\\yhsj.png", ints);
     }
 
 
@@ -26,9 +29,9 @@ public class Test46 {
      *
      * @param rowCount 要输出多少行。
      */
-    private static ArrayList<int[]> printYHSJ(int rowCount) {
+    private static ArrayList<long[]> printYHSJ(int rowCount) {
         // String format = "%3";
-        ArrayList<int[]> yhsjList = new ArrayList<>();
+        ArrayList<long[]> yhsjList = new ArrayList<>();
 
         for (int i = 0; i < rowCount; i++) {
 
@@ -38,7 +41,7 @@ public class Test46 {
             // }
 
             // 每一行都可能有多个数字，所以内层循环循环每一行的内容。
-            int row[] = new int[i + 1];
+            long row[] = new long[i + 1];
             for (int j = 0; j <= i; j++) {
                 // 每个数字都等于这个数字肩膀上两个数字之和。
 
@@ -47,7 +50,7 @@ public class Test46 {
                     row[j] = 1;
                 } else {
                     // 获取到这个数字肩上的哪一排数字。
-                    int rowNumbers[] = yhsjList.get(i - 1);
+                    long rowNumbers[] = yhsjList.get(i - 1);
                     row[j] = rowNumbers[j - 1] + rowNumbers[j];
                 }
                 // System.out.printf(format + "d", row[j]);
@@ -60,30 +63,61 @@ public class Test46 {
     }
 
 
-    private static void printYHSJ(String filePath, List<int[]> yhsjList) {
+    private static void printYHSJ(String filePath, List<long[]> yhsjList) {
         int width = 1000;
-        int height = 1000;
+        int height = 500;
         BufferedImage bufferedImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+
         Graphics graphics = bufferedImage.getGraphics();
-        graphics.setColor(Color.WHITE);
+        graphics.setColor(new Color(1,1,1,1f));
         graphics.fillRect(0, 0, width, height);
-        graphics.setColor(Color.BLACK);
-        graphics.setFont(new Font("微软雅黑", 0, 25));
+
         int lastRowNumCount = yhsjList.get(yhsjList.size() - 1).length;
         int eachNumWidth = width / lastRowNumCount;
-        int eachNumHeight = 40;
+        int eachNumHeight = height / yhsjList.size();
 
+        Font font = new Font("微软雅黑", 0, Math.round(eachNumHeight / 2f));
+        graphics.setFont(font);
 
         for (int index = 0; index < yhsjList.size(); index++) {
-            int[] row = yhsjList.get(index);
+            long[] row = yhsjList.get(index);
             int totalRowWidth = row.length * eachNumWidth;
             int startPositionY = index * eachNumHeight;
             for (int i = 0; i < row.length; i++) {
+
                 int startPositionX = (width - totalRowWidth) / 2;
                 startPositionX += (i * eachNumWidth);
-                graphics.drawRect(startPositionX, startPositionY, eachNumWidth, eachNumHeight);
+
+                graphics.setColor(Color.LIGHT_GRAY);
+                graphics.fillRect(startPositionX+1,
+                        startPositionY+1,
+                        eachNumWidth-1,
+                        eachNumHeight-1
+                );
+
                 String s = String.valueOf(row[i]);
-                graphics.drawString(s, startPositionX + (eachNumWidth / 2) - ((graphics.getFont().getSize() * s.length()) / 2), startPositionY + (eachNumHeight / 2) + graphics.getFont().getSize()/2);
+
+                graphics.setColor(Color.BLACK);
+                float fontStringWidth = SwingUtilities2.getFontStringWidth(s, graphics.getFontMetrics(), false);
+
+                if (fontStringWidth >= eachNumWidth) {
+                    graphics.setFont(new Font(
+                            "微软雅黑",
+                            0,
+                            Math.round(eachNumWidth/s.length())
+                    ));
+                } else {
+                    graphics.setFont(font);
+                }
+
+                int fontSize = graphics.getFont().getSize();
+                fontStringWidth = SwingUtilities2.getFontStringWidth(s, graphics.getFontMetrics(),false);
+                graphics.drawString(
+                        s,
+                        startPositionX+1 + Math.round(eachNumWidth / 2f) - Math.round(fontStringWidth/2),
+                        startPositionY + Math.round(eachNumHeight / 2f) + Math.round(fontSize / 2f)
+                );
+                graphics.setFont(font);
             }
 
         }
