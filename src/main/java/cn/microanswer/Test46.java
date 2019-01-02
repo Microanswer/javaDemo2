@@ -12,13 +12,18 @@ import java.util.List;
 public class Test46 {
 
     /**
+     * 输出 杨辉三角为 png 图像。
      * @param args 主参数
      * @author Microanswer
      * @date 2018年12月28日 18:07:50
      */
     public static void main(String[] args) throws Exception {
-        ArrayList<long[]> ints = printYHSJ(16);
-        printYHSJ("C:\\Users\\Micro\\Desktop\\yhsj.png", ints);
+
+        // 建立 16 行的杨辉三角
+        ArrayList<long[]> longs = printYHSJ(16);
+
+        // 输出到图像。
+        printYHSJ("C:\\Users\\Microanswer\\Desktop\\yhsj.png", longs);
     }
 
 
