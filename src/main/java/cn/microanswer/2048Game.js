@@ -1,7 +1,10 @@
 "use strict";
 (function (window) {
     // 要随机产生的数都是来自这个数组。 (tv：得到这个数的概率)
-    var numConfig = [{value: 4, tv: 0.1}, {value: 2, tv: 0.9}];
+    var numConfig = [
+        {value: 4, color: '#ffd85b', tv: 0.1},
+        {value: 2, color: '#ff9917', tv: 0.9}
+        ];
 
     // 游戏实例对象。
     var game = {
@@ -72,6 +75,7 @@
                 game.datas.ctx.height = game.datas.Constant_viewSize;
                 game.datas.ctx.lineJoin = 'round';
                 game.datas.ctx.lineCap = 'round';
+                game.datas.ctx.font = '35px Arial';
 
                 // 随机初始化 2 个方块。
                 game.datas.items = [];
@@ -92,6 +96,7 @@
             /**
              * 随机产生一个方块。
              * @param limit 产生的范围， 0~limit
+             * @param size  方块大小。
              * @private
              */
             __makeARandomBlock: function (limit, size) {
@@ -100,9 +105,22 @@
                     row: -1,
                     col: -1,
                     size: size,
+                    color: '下方将更具数字设定颜色。',
                     // 绘制自身方块。
                     draw: function (ctx) {
 
+                        // 绘制方块背景
+                        var x = block.row * (game.datas.Constant_spaceWidth + block.size) + game.datas.Constant_spaceWidth;
+                        var y = block.col * (game.datas.Constant_spaceWidth + block.size) + game.datas.Constant_spaceWidth;
+                        game.methods.__drawRoundRect(ctx, x, y, block.size, block.size, game.datas.Constant_spaceWidth, block.color);
+
+                        // 绘制数字
+                        var fs = ctx.fillStyle;
+                        ctx.fillStyle = '#FFFFFF';
+                        var tw = ctx.measureText(block.num + '').width;
+                        ctx.fillText(block.num, x + ((block.size - tw)/2), y + ((block.size + 25)/2), block.size);
+
+                        ctx.fillStyle = fs;
                     }
                 };
 
@@ -111,15 +129,17 @@
                 var flag = 0;
                 for (var index = 0; index < numConfig.length; index++) {
                     var num = numConfig[index];
-                    if (flag <= num.tv && num.tv < r) {
+                    var fl2 = (num.tv + flag);
+                    if (flag <= r && r < fl2) {
                         block.num = num.value;
+                        block.color = num.color;
                         break;
                     }
-                    flag = num.tv;
+                    flag += num.tv;
                 }
 
                 if (block.num <= 0) {
-                    throw new Error('产生数字失败。可能数字配置总和不为 1。');
+                    throw new Error('产生数字失败。可能数字配置总和不为 1。' + r);
                 }
 
                 // (Math.random() * (y - x)) + x ==> [0, y-x) ==> [x, y)
@@ -148,7 +168,7 @@
                 game.methods.__drawSpaceGrid(ctx, datas.Constant_spaceWidth, datas.Constant_spaceColor);
 
                 // 绘制方块。
-                game.methods.__drawBlock(datas.items);
+                game.methods.__drawBlock(ctx, datas.items);
             },
 
             // 圆角矩形绘制。
