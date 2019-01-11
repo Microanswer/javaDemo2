@@ -1,0 +1,161 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>test</title>
+</head>
+<body>
+
+<!-- 输入控制区。 包含： 提示文案，输入框，确定按钮 -->
+<div>
+
+    <!-- 提示文案 -->
+    <span>请输入一个你要显示的数字：</span>
+
+    <!-- 输入框 -->
+    <input id="numberInputer"/>
+
+    <!-- 确定按钮 -->
+    <button id="btnSure">确定</button>
+</div>
+
+<!-- 模拟数字显示的区域。 -->
+<div id="screen" style="background: #cdcdcd"></div>
+
+<!-- 错误提示信息区域 -->
+<div id="mConsole" style="color: red;font-size: 15px;"></div>
+
+<!-- js代码区域 -->
+<script lang="javascript">"use strict";
+(function () {
+
+    /**
+     * 滚动\演变 方法.
+     * 此方法功能：
+     *    从数字 mfrom 持续变化，直到达到 to 的值。
+     *
+     * @param mfrom 其实数字
+     * @param to    目标数字
+     * @param back  变化过程中不的回调。
+     *              格式：
+     *              {
+     *                // current 当前变化到的值
+     *                goo: function (current) {此处不停的执行},
+     *
+     *                // end 结束值，等于 to 的值
+     *                end: function (end) {运行结束时执行}
+     *              }
+     */
+    function scroll (mfrom, to, back) {
+        if (window._sclin_) {
+            // 滚动还没有完成，不执行
+            return
+        }
+
+        var start = parseFloat(mfrom || 0);
+
+        var distance = to - start;
+
+        if (distance === 0) {
+            // 没有意义的滚动
+            back && back.end && back.end(to);
+            return;
+        }
+
+        var ended = false; // 标记是否结束
+        var time = 400;    // 运行的时间
+        var ftp = 60;      // 变化帧率
+
+        var ease = function (pos) { return -(Math.pow((pos - 1), 4) - 1); }; // 要使用的缓动公式
+
+        var startTime = new Date().getTime(); // 开始时间
+
+        // 开始执行
+        (function runn () {
+            window._sclin_ = true;           // 正在运行标记设置为true
+            var now = new Date().getTime();  // 当前帧开始时间
+            var timestamp = now - startTime; // 逝去的时间(已进行动画的全部时间)
+            var easeResult = ease(timestamp / time); // 取到增量变化比例。
+            var result2 = Math.ceil(start + (easeResult * distance)); // 将初始值 + (增量变化比例 x 总变化量) = 当前时刻应该变化的结果
+            if (!ended) { // 在没结束时持续调用 goo 方法。
+                back && back.goo && back.goo(result2);
+            }
+            if (time <= timestamp) { // 时间已经达到了预期时间。 直接调用结束。
+                ended = true;
+                back.end(to);
+                window._sclin_ = false;
+            } else {
+                // 持续下一帧。
+                setTimeout(runn, 1000 / ftp);
+            }
+        })();
+    }
+
+    var me = {
+
+        // 初始化方法。
+        init: function () {
+            // 完成对按钮的监听设置
+            me.doms.btnSure.addEventListener('click', me.methods.onBtnSureClick);
+            me.doms.numberInputer.addEventListener('keypress', function (event) {
+                if (event.keyCode === 13) {
+                    me.methods.onBtnSureClick();
+                }
+            })
+        },
+        // 要用到的 dom 的区域
+        doms: {
+            screen: document.querySelector("#screen"),
+            numberInputer: document.querySelector("#numberInputer"),
+            btnSure: document.querySelector("#btnSure"),
+            mConsole: document.querySelector("#mConsole")
+        },
+        methods: {
+
+            // 设置一个数组到显示区域。 会有变化效果。
+            setNumber: function (number) {
+
+                // 取到现有显示的数据， 没有则默认 0
+                var fromNumber = me.doms.screen.innerText || 0;
+
+                // 开始进行动画方式显示数字。
+                scroll(fromNumber, number, {
+                    goo: function (current) {
+                        me.doms.screen.innerText = current;
+                        me.doms.screen.style.width = current;
+                    },
+                    end: function (end) {
+                        me.doms.screen.innerText = end;
+                        me.doms.screen.style.width = end;
+                    }
+                });
+            },
+
+            // 按钮点击时此方法执行。
+            onBtnSureClick: function () {
+
+                // 获取到输入的内容
+                var number = me.doms.numberInputer.value;
+
+                // 粗略的判断这个内容是不是数字（使用正则判断）
+                if (number && number.match(/^[0-9]+$/)) {
+
+                    // 是数字进行显示。
+                    me.methods.setNumber(number);
+                } else {
+
+                    // 不是数字给出提示。
+                    me.doms.mConsole.innerText = "输入错误";
+                    setTimeout(function () {
+                        me.doms.mConsole.innerText = "";
+                    }, 1000)
+                }
+            }
+        }
+    };
+
+    // 初始化
+    me.init();
+})();
+</script>
+</body>
+</html>
