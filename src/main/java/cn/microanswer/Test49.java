@@ -10,15 +10,16 @@ public class Test49 {
      */
     public static void main(String[] args) throws Exception {
 
-        /**
-         * 使用idea可以立即测试正则的正确性。
-         */
+        fuckSelf(20);
 
-        String str = "";
 
-        if (str.matches("[0-9]")) {
-            System.out.println("success");
+    }
+
+    private static void fuckSelf(int j8) {
+        if (j8 <= 0 /*cm*/) {
+            System.out.println("fuck over!");
+        } else {
+            fuckSelf(--j8);
         }
-
     }
 }
