@@ -10,9 +10,9 @@ public class Test49 {
      */
     public static void main(String[] args) throws Exception {
 
-        fuckSelf(20);
+        String s = HttpUtil.get("http://iir.circ.gov.cn");
 
-
+        System.out.println(s);
     }
 
     private static void fuckSelf(int j8) {
