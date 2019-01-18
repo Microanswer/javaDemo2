@@ -10,16 +10,48 @@ public class Test49 {
      */
     public static void main(String[] args) throws Exception {
 
-        String s = HttpUtil.get("http://iir.circ.gov.cn");
 
-        System.out.println(s);
     }
 
-    private static void fuckSelf(int j8) {
-        if (j8 <= 0 /*cm*/) {
-            System.out.println("fuck over!");
-        } else {
-            fuckSelf(--j8);
+    public class ListNode {
+        int val;
+        ListNode next;
+
+        ListNode(int x) {
+            val = x;
         }
+    }
+
+    public ListNode addTwoNumbers(ListNode l1, ListNode l2) {
+        String num1 = getNum(l1);
+        String num2 = getNum(l2);
+        return getLn(num1 + num2);
+    }
+
+    private String getNum(ListNode ln) {
+        StringBuilder num1 = new StringBuilder(String.valueOf(ln.val));
+        while (ln.next != null) {
+            num1.append(ln.next.val);
+            ln = ln.next;
+        }
+        return num1.reverse().toString();
+    }
+
+    private ListNode getLn(long num) {
+        String n = String.valueOf(num);
+        ListNode ds = null;
+        ListNode ln = null;
+        for (int i = n.length() - 1; i >= 0; i--) {
+            int v = Integer.parseInt("" + n.charAt(i));
+            if (ln == null) {
+                ln = new ListNode(v);
+                ds = ln;
+            } else {
+                ln.next = new ListNode(v);
+                ln = ln.next;
+            }
+        }
+
+        return ds;
     }
 }
