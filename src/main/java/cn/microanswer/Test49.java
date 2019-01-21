@@ -1,6 +1,8 @@
 package cn.microanswer;
 
 
+import java.math.BigDecimal;
+
 public class Test49 {
 
     /**
@@ -25,7 +27,7 @@ public class Test49 {
     public ListNode addTwoNumbers(ListNode l1, ListNode l2) {
         String num1 = getNum(l1);
         String num2 = getNum(l2);
-        return getLn(num1 + num2);
+        return getLn(plus(num1, num2));
     }
 
     private String getNum(ListNode ln) {
@@ -37,12 +39,11 @@ public class Test49 {
         return num1.reverse().toString();
     }
 
-    private ListNode getLn(long num) {
-        String n = String.valueOf(num);
+    private ListNode getLn(String num) {
         ListNode ds = null;
         ListNode ln = null;
-        for (int i = n.length() - 1; i >= 0; i--) {
-            int v = Integer.parseInt("" + n.charAt(i));
+        for (int i = num.length() - 1; i >= 0; i--) {
+            int v = Integer.parseInt("" + num.charAt(i));
             if (ln == null) {
                 ln = new ListNode(v);
                 ds = ln;
@@ -53,5 +54,14 @@ public class Test49 {
         }
 
         return ds;
+    }
+
+    private String plus(String num1, String num2) {
+        BigDecimal bNum1 = new BigDecimal(num1);
+        BigDecimal bNum2 = new BigDecimal(num2);
+
+        BigDecimal add = bNum1.add(bNum2);
+
+        return add.toString();
     }
 }
