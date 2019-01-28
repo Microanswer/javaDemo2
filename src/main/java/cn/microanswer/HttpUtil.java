@@ -48,8 +48,8 @@ public class HttpUtil {
         Request request = builder.build(); // 建立请求数据。
         Call call = getHttpClient().newCall(request); // 使用请求数据建立请求。
         Response response = call.execute(); // 发起请求。
-        if (response.code() != 200 || !"OK".equals(response.message())) {
-            throw new Exception(url + " [" + response.code() + "] " + response.message());
+        if (response.code() != 200) {
+            throw new Exception("request error:" + url + " [" + response.code() + "] " + response.message());
         }
         return response.body().string();
     }
@@ -100,7 +100,7 @@ public class HttpUtil {
         Request request = builder.build(); // 建立请求数据。
         Call call = getHttpClient().newCall(request); // 使用请求数据建立请求。
         Response response = call.execute();
-        if (response.code() != 200 || !"OK".equals(response.message())) {
+        if (response.code() != 200) {
             throw new Exception(url + " [" + response.code() + "] " + response.message());
         }
         return response.body().string();
