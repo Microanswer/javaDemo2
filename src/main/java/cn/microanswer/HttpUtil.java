@@ -3,9 +3,11 @@ package cn.microanswer;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import okhttp3.*;
-import okio.BufferedSink;
 
-import java.io.*;
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
 import java.net.URLEncoder;
 import java.util.Map;
 import java.util.Set;
@@ -58,7 +60,7 @@ public class HttpUtil {
         Call call = getHttpClient().newCall(request); // 使用请求数据建立请求。
         Response response = call.execute(); // 发起请求。
         if (response.code() != 200) {
-            throw new Exception("request error:" + url + " [" + response.code() + "] " + response.message());
+            throw new Exception("get error:" + url + " [" + response.code() + "] " + response.message());
         }
         return response.body().string();
     }
@@ -105,24 +107,12 @@ public class HttpUtil {
             }
         }
 
-        RequestBody body = new RequestBody() {
-            @Override
-            public MediaType contentType() {
-                return contentType;
-            }
-
-            @Override
-            public void writeTo(BufferedSink bufferedSink) throws IOException {
-                bufferedSink.write(bodyBytes);
-            }
-        };
-
-        builder.post(body);
+        builder.post(RequestBody.create(contentType, bodyBytes));
         Request request = builder.build(); // 建立请求数据。
         Call call = getHttpClient().newCall(request); // 使用请求数据建立请求。
         Response response = call.execute();
         if (response.code() != 200) {
-            throw new Exception(url + " [" + response.code() + "] " + response.message());
+            throw new Exception("post error:" + url + " [" + response.code() + "] " + response.message());
         }
         return response.body().string();
     }
@@ -253,6 +243,87 @@ public class HttpUtil {
     }
 
     /**
+     * 上传文件到指定的 url.
+     * 此方法将使用
+     *
+     * @param url     [Y] 地址
+     * @param params  [N] 参数
+     * @param headers [N] 参数
+     * @param files   [N] 文件
+     * @return
+     * @throws Exception
+     */
+    public static String upload(String url, Map<String, String> params, Map<String, String> headers, File... files) throws Exception {
+        Request.Builder builder = new Request.Builder();
+        builder.url(url);
+        if (headers != null && headers.size() > 0) {
+            Set<Map.Entry<String, String>> entries = headers.entrySet();
+            for (Map.Entry<String, String> entry : entries) {
+                builder.addHeader(entry.getKey(), entry.getValue());
+            }
+        }
+        final MultipartBody.Builder multipartBodyBuilder = new MultipartBody.Builder();
+        multipartBodyBuilder.setType(MultipartBody.FORM);
+
+        if (params != null && params.size() > 0) {
+            mapForEach(params, new Fun<String, String>() {
+                @Override
+                public void d0fun(String key, String value) {
+                    multipartBodyBuilder.addFormDataPart(key, value);
+                }
+            });
+        }
+
+        if (files != null && files.length > 0) {
+            int index = 0;
+            for (File file : files) {
+                multipartBodyBuilder.addFormDataPart(
+                        "file" + (index > 0 ? index : ""),
+                        file.getName(),
+                        RequestBody.create(MediaType.parse("*/*"), file)
+                );
+                index = index + 1;
+            }
+        }
+
+        builder.post(multipartBodyBuilder.build());
+        Request request = builder.build(); // 建立请求数据。
+        Call call = getHttpClient().newCall(request); // 使用请求数据建立请求。
+        Response response = call.execute();
+        if (response.code() != 200) {
+            throw new Exception("upload error:" + url + " [" + response.code() + "] " + response.message());
+        }
+        return response.body().string();
+    }
+
+    /**
+     * 上传文件到指定的 url.
+     * 此方法将使用
+     *
+     * @param url    [Y] 地址
+     * @param params [N] 参数
+     * @param files  [N] 文件
+     * @return
+     * @throws Exception
+     */
+    public static String upload(String url, Map<String, String> params, File... files) throws Exception {
+        return upload(url, params, null, files);
+    }
+
+    /**
+     * 上传文件到指定的 url.
+     * 此方法将使用
+     *
+     * @param url   [Y] 地址
+     * @param files [N] 文件
+     * @return
+     * @throws Exception
+     */
+    public static String upload(String url, File... files) throws Exception {
+        return upload(url, null, files);
+    }
+
+    /**
      * 下载文件.如果指定的文件已存在，将会覆盖。
      *
      * @param url       [Y] 下载路径
@@ -374,7 +445,7 @@ public class HttpUtil {
      * @throws Exception
      */
     public static File download(String url) throws Exception {
-        return download(url, (File)null);
+        return download(url, (File) null);
     }
 
     /**
@@ -410,4 +481,18 @@ public class HttpUtil {
         return map2wwwUrlFormEncode(params, CHARSET);
     }
 
+    private static void mapForEach(Map<String, String> map, Fun<String, String> fun) throws Exception {
+        if (map == null || map.size() <= 0 || fun == null) {
+            return;
+        }
+        Set<Map.Entry<String, String>> entries = map.entrySet();
+        for (Map.Entry<String, String> entry : entries) {
+            fun.d0fun(entry.getKey(), entry.getValue());
+        }
+    }
+
+    // 持有2个泛型定义和一个方法的接口
+    private interface Fun<A, B> {
+        void d0fun(A a, B b) throws Exception;
+    }
 }
