@@ -82,6 +82,11 @@ class ClientWindow extends JFrame {
             public void windowClosed(WindowEvent e) {
                 super.windowClosed(e);
                 Task.TaskHelper.getInstance().stopAfterLastTaskFlish();
+                // 删除工作目录
+                File file = new File(Constant.WORK_DIR);
+                if (file.exists()) {
+                    Constant.deleteFile(file);
+                }
             }
         };
         addWindowListener(windowAdapter);
@@ -476,9 +481,7 @@ class ClientWindow extends JFrame {
                     if (selectedFile != null) {
                         try {
                             currentDir = selectedFile.getParentFile().getCanonicalPath();
-                        } catch (Exception e22) {
-                            e22.printStackTrace();
-                        }
+                        }catch (Exception e22){e22.printStackTrace();}
                         sendFile(selectedFile, ACTION_COMMAND_CHOOSE_PIC.equals(actionCommand));
                     }
                 }
@@ -938,11 +941,6 @@ class ClientWindow extends JFrame {
 
         @Override
         public void onDisConn(Client client) {
-            // 删除工作目录
-            File file = new File(Constant.WORK_DIR);
-            if (file.exists()) {
-                Constant.deleteFile(file);
-            }
 
             // 连接被关闭，关闭窗口
             SwingUtilities.invokeLater(new Runnable() {
@@ -964,7 +962,7 @@ class ClientWindow extends JFrame {
                         buttonLogin.setEnabled(true);
                     }
                     String message = e.getMessage();
-                    if ("Connection refused: connect".equals(message)) {
+                    if ("java.net.ConnectException: Connection refused: connect".equals(message)) {
                         message = "登入失败，指定的服务器未启动。";
                     }
                     JOptionPane.showMessageDialog(ClientWindow.this, "客户端错误：" + message, Constant.ERROR, JOptionPane.ERROR_MESSAGE);
