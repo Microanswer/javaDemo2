@@ -8,6 +8,7 @@ import java.io.OutputStream;
  * 常量类
  */
 public class Constant {
+    static final String VERSION = "v2.2";
     /**
      * Microanswer 的网址
      */

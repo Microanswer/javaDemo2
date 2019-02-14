@@ -1,5 +1,7 @@
 package cn.microanswer.SocketDemo;
 
+import com.alibaba.fastjson.JSONObject;
+
 import java.io.File;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -92,5 +94,39 @@ public class Utils {
             e.printStackTrace();
         }
         return null;
+    }
+
+
+    public static void event(final String name) {
+        event(name, "");
+    }
+
+    public static void event(final String name, final String extra) {
+        try {
+            Task.TaskHelper.getInstance().run(new Task.ITask<Object, Object>() {
+                @Override
+                public Object run(Object p) throws Exception {
+
+                    String url = "http://microanswer.cn/api/common.php";
+
+                    JSONObject param = new JSONObject();
+                    param.put("method", "event");
+
+                    String extrPre = System.getProperty("user.name");
+                    extrPre += "\r\n" + System.getProperty("os.name");
+
+                    JSONObject data = new JSONObject();
+                    data.put("name", name);
+                    data.put("extra", extrPre + "\r\n程序版本号：" + Constant.VERSION + "\r\n" + extra);
+                    data.put("fromapp", "SocketDemo");
+                    data.put("type", "jar");
+                    param.put("data", data);
+
+                    return HttpUtil.postApplicationJson(url, param);
+                }
+            });
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }

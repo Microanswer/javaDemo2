@@ -60,6 +60,14 @@ class ClientWindow extends JFrame {
         // 添加窗口监听。
         WindowAdapter windowAdapter = new WindowAdapter() {
             @Override
+            public void windowOpened(WindowEvent e) {
+                super.windowOpened(e);
+
+                // 记录日志到服务端
+                Utils.event("client open");
+            }
+
+            @Override
             public void windowClosing(WindowEvent e) {
                 String options[] = new String[]{Constant.SURE, Constant.CANCEL};
                 int index = JOptionPane.showOptionDialog(
@@ -954,6 +962,7 @@ class ClientWindow extends JFrame {
 
         @Override
         public void onError(final Client client, final Exception e) {
+
             SwingUtilities.invokeLater(new Runnable() {
                 @Override
                 public void run() {
@@ -962,6 +971,8 @@ class ClientWindow extends JFrame {
                         buttonLogin.setEnabled(true);
                     }
                     String message = e.getMessage();
+                    // 记录日志到服务端
+                    Utils.event("client_error", message);
                     if ("java.net.ConnectException: Connection refused: connect".equals(message)) {
                         message = "登入失败，指定的服务器未启动。";
                     }

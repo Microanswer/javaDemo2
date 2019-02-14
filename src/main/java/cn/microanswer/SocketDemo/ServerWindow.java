@@ -21,6 +21,14 @@ public class ServerWindow extends JFrame implements Server.ServerListener {
      * window 关闭事件处理
      */
     private WindowAdapter windowAdapter = new WindowAdapter() {
+
+        @Override
+        public void windowOpened(WindowEvent e) {
+            super.windowOpened(e);
+            // 记录日志到服务端
+            Utils.event("server open");
+        }
+
         @Override
         public void windowClosing(WindowEvent e) {
             if (server.getClientCount() > 0) {
@@ -126,7 +134,10 @@ public class ServerWindow extends JFrame implements Server.ServerListener {
     @Override
     public void onError(Exception e) {
         e.printStackTrace();
-        JOptionPane.showMessageDialog(ServerWindow.this, e.getMessage(), Constant.ERROR, JOptionPane.ERROR_MESSAGE);
+        String message = e.getMessage();
+        // 记录日志到服务端
+        Utils.event("server_error", message);
+        JOptionPane.showMessageDialog(ServerWindow.this, message, Constant.ERROR, JOptionPane.ERROR_MESSAGE);
     }
 
     @Override

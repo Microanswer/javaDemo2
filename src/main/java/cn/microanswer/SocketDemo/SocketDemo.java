@@ -14,7 +14,7 @@ public class SocketDemo {
     /**
      * 程序入口。
      */
-    public static void main(String args[]) {
+    public static void main(String args[]) throws Exception {
         /*
          * 此 Demo 演示流程：
          *
@@ -26,21 +26,22 @@ public class SocketDemo {
          *
          */
 
-        try {
-            // 设置界面风格和 window 窗口相同。
-            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+         try {
+             // 设置界面风格和 window 窗口相同。
+             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
 
-            // 开启程序
-            SwingUtilities.invokeAndWait(new Runnable() {
-                @Override
-                public void run() {
-                    new OptionWindow(Toolkit.getDefaultToolkit()).setVisible(true);
-                }
-            });
+             // 开启程序
+              SwingUtilities.invokeAndWait(new Runnable() {
+                  @Override
+                  public void run() {
+                       new OptionWindow(Toolkit.getDefaultToolkit()).setVisible(true);
+                  }
+              });
 
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+         } catch (Exception e) {
+             e.printStackTrace();
+         }
+        System.out.println("结束");
     }
 }
 

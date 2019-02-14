@@ -100,7 +100,7 @@ public class OptionWindow extends JFrame {
      */
     private void addButtonAndLogic() {
         Container contentPane = getContentPane();
-        contentPane.setLayout(new FlowLayout(FlowLayout.CENTER, 100, 17));
+        contentPane.setLayout(new FlowLayout(FlowLayout.CENTER, 100, 15));
 
 
         JButton button1 = new JButton(Constant.OPTION_WINDOW_BUTTON1_TXT);
@@ -140,7 +140,7 @@ public class OptionWindow extends JFrame {
             }
         });
         contentPane.add(jLabel);
-        contentPane.add(new JLabel("v2.0"));
+        contentPane.add(new JLabel(Constant.VERSION));
     }
 
 }
