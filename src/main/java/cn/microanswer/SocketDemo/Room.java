@@ -23,13 +23,13 @@ public class Room {
     private RoomListener roomListener;
 
     Room() {
-        members = new ArrayList<>();
+        members = new ArrayList<Member>();
     }
 
     Room(String id, String name) {
         this.id = id;
         this.name = name;
-        members = new ArrayList<>();
+        members = new ArrayList<Member>();
     }
 
     void dispatchMsg(Msg msg) {

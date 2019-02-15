@@ -93,8 +93,8 @@ public class Task<P, R> {
             if (this.maxThreadCount < 1) {
                 this.maxThreadCount = 1;
             }
-            this.taskThreads = new ArrayList<>();
-            this.needRunTasks = new Vector<>();
+            this.taskThreads = new ArrayList<TaskThread>();
+            this.needRunTasks = new Vector<Task>();
         }
 
         public static TaskHelper getInstance() {
@@ -117,7 +117,7 @@ public class Task<P, R> {
 
             // 还没有开启任何一个任务线程
             if (taskThreads.isEmpty()) {
-                TaskThread<Object, Object> taskThread = new TaskThread<>(needRunTasks, this);
+                TaskThread<Object, Object> taskThread = new TaskThread<Object, Object>(needRunTasks, this);
                 taskThread.start();
                 taskThreads.add(taskThread);
                 // Log.w("Microanswer", "没有开任何线程，现在开启一个线程了。");
@@ -132,7 +132,7 @@ public class Task<P, R> {
                     // 开启新的线程处理这些较多的任务
                     if (taskThreads.size() < maxThreadCount) {
                         // Log.w("Microanswer", "全部线程：" + taskThreads.size() + ", 全部任务： " + needRunTasks.size() + ", 任务较多，新开线程了。 ");
-                        TaskThread<Object, Object> taskThread = new TaskThread<>(needRunTasks, this);
+                        TaskThread<Object, Object> taskThread = new TaskThread<Object, Object>(needRunTasks, this);
                         taskThread.start();
                         taskThreads.add(taskThread);
                     } else {
@@ -161,7 +161,7 @@ public class Task<P, R> {
          * @return
          */
         public <P, R> Task<P, R> newTask(ITask<P, R> iTask, int id) {
-            Task<P, R> task = new Task<>(iTask);
+            Task<P, R> task = new Task<P, R>(iTask);
             task.setId(id);
             return task;
         }

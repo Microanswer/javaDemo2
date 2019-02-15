@@ -110,7 +110,7 @@ public class ServerWindow extends JFrame implements Server.ServerListener {
         connectedCountLabel = new JLabel("当前已连接人数：0");
         getContentPane().add(connectedCountLabel);
 
-        jList = new JList<>();
+        jList = new JList<String>();
         jList.setBackground(getContentPane().getBackground());
         jList.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
 

@@ -1,5 +1,10 @@
 package cn.microanswer.SocketDemo;
 
+
+/**
+ * 此类依赖 fastjson 和 okhttp3 请做好依赖配置。
+ */
+
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import okhttp3.*;
@@ -19,9 +24,6 @@ public class HttpUtil {
     public static final MediaType X_WWW_FORM_URLENCODED = MediaType.parse("application/x-www-form-urlencoded");
 
     private static OkHttpClient __httpClient;
-    public static void init() {
-        __httpClient = getHttpClient();
-    }
 
     private static OkHttpClient getHttpClient() {
         if (__httpClient == null) {

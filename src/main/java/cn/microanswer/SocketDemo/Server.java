@@ -34,8 +34,8 @@ public class Server extends Thread {
     @Override
     public void run() {
         super.run();
-        clients = new HashMap<>();
-        rooms = new HashMap<>();
+        clients = new HashMap<String, Client>();
+        rooms = new HashMap<String, Room>();
         try {
             // 新建服务
             serverSocket = new ServerSocket(Constant.SERVER_PORT);
@@ -395,7 +395,7 @@ public class Server extends Thread {
 
             // 查找所有的聊天室， 如果该下线的用户在某一个聊天室中，则关闭这个聊天室。
             Set<Map.Entry<String, Room>> entries = rooms.entrySet();
-            ArrayList<Room> shuldRemove = new ArrayList<>();
+            ArrayList<Room> shuldRemove = new ArrayList<Room>();
             Room.Member member = new Room.Member(client.getClientId(), client.getClientNamme());
             for (Map.Entry<String, Room> entry : entries) {
                 Room value = entry.getValue();

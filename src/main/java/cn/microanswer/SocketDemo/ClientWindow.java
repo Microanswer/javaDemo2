@@ -44,7 +44,7 @@ class ClientWindow extends JFrame {
     ClientWindow(Toolkit toolkit) {
         super(Constant.CLIENT_WINDOW_TITLE);
         this.toolkit = toolkit;
-        this.talkingRooms = new HashMap<>();
+        this.talkingRooms = new HashMap<String, Room>();
 
         // 初始化窗口位置和大小
         Dimension screenSize = this.toolkit.getScreenSize();
@@ -216,8 +216,8 @@ class ClientWindow extends JFrame {
         contentPane.add(jTabbedPane, BorderLayout.CENTER);
 
         // 右边显示所有在线人员列表
-        allOnlines = new Vector<>();
-        allUserList = new JList<>(allOnlines);
+        allOnlines = new Vector<Room.Member>();
+        allUserList = new JList<Room.Member>(allOnlines);
         allUserList.setFixedCellWidth(150);
         allUserList.setCellRenderer(new DefaultListCellRenderer() {
             @Override
@@ -506,7 +506,7 @@ class ClientWindow extends JFrame {
         void initUI() {
 
             // 中间显示聊天记录
-            msgs = new ArrayList<>();
+            msgs = new ArrayList<Msg>();
             msgListPanel = new JPanel();
             msgListPanel.setLayout(new LinearLayout());
             msgListPanel.setBackground(Color.WHITE);

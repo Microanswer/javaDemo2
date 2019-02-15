@@ -291,7 +291,7 @@ class Msg {
 
     public void setSendListener(SendListener sendListener) {
         if (this.sendListeners == null) {
-            this.sendListeners = new ArrayList<>();
+            this.sendListeners = new ArrayList<SendListener>();
         }
         this.sendListeners.add(sendListener);
     }
