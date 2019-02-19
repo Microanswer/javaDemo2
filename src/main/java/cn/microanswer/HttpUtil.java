@@ -11,6 +11,7 @@ import java.io.InputStream;
 import java.net.URLEncoder;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 public class HttpUtil {
     private static String CHARSET = "UTF-8";
@@ -24,6 +25,9 @@ public class HttpUtil {
         if (__httpClient == null) {
             __httpClient = new OkHttpClient
                     .Builder()
+                    .connectTimeout(20, TimeUnit.SECONDS)
+                    .readTimeout(20, TimeUnit.SECONDS)
+                    .writeTimeout(20, TimeUnit.SECONDS)
                     .build();
         }
         return __httpClient;
