@@ -4,10 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import okhttp3.*;
 
-import java.io.BufferedOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.InputStream;
+import java.io.*;
 import java.net.URLEncoder;
 import java.util.Map;
 import java.util.Set;
@@ -33,6 +30,57 @@ public class HttpUtil {
         return __httpClient;
     }
 
+    private static Response _requestForResponse(Request request) throws NetException {
+        Call call = getHttpClient().newCall(request); // 使用请求数据建立请求。
+        Response response = null; // 发起请求。
+        try {
+            response = call.execute();
+            if (response.code() != 200) {
+                throw new Exception(request.method() + " error:" + request.url() + " [" + response.code() + "] " + response.message());
+            }
+        }catch (Exception e) {
+            int code = -1;
+            if (response != null) {
+                code = response.code();
+            }
+            throw new NetException(e.getMessage(), code);
+        }
+
+        return response;
+    }
+    private static String _requestForString(Request request) throws NetException {
+        Response response = _requestForResponse(request);
+        return response.body().toString();
+    }
+
+    private static String _makeParamUrl(String url, Map<String, String> params) {
+        String queryString = map2wwwUrlFormEncode(params);
+        if (queryString.length() > 0) {
+            if (url.contains("?")) {
+                url = url + "&" + queryString;
+            } else {
+                url = url + "?" + queryString;
+            }
+        }
+        return url;
+    }
+
+    private static void _putHearderInRequestBuilder (Request.Builder builder, Map<String, String> headers) {
+        if (headers != null && headers.size() > 0) {
+            Set<Map.Entry<String, String>> entries = headers.entrySet();
+            for (Map.Entry<String, String> entry : entries) {
+                builder.addHeader(entry.getKey(), entry.getValue());
+            }
+        }
+    }
+    private static Request _makeGetRequest(String url, Map<String, String> params, Map<String, String> headers) {
+        Request.Builder builder = new Request.Builder();
+        builder.url(_makeParamUrl(url, params));
+        _putHearderInRequestBuilder(builder, headers);
+        builder.get();
+        return builder.build();
+    }
+
     /**
      * 使用 get方法 请求某地址。
      *
@@ -42,31 +90,8 @@ public class HttpUtil {
      * @return
      */
     public static String get(String url, Map<String, String> params, Map<String, String> headers) throws Exception {
-        String queryString = map2wwwUrlFormEncode(params);
-        if (queryString.length() > 0) {
-            if (url.contains("?")) {
-                url = url + "&" + queryString;
-            } else {
-                url = url + "?" + queryString;
-            }
-        }
 
-        Request.Builder builder = new Request.Builder();
-        builder.url(url);
-        if (headers != null && headers.size() > 0) {
-            Set<Map.Entry<String, String>> entries = headers.entrySet();
-            for (Map.Entry<String, String> entry : entries) {
-                builder.addHeader(entry.getKey(), entry.getValue());
-            }
-        }
-        builder.get();
-        Request request = builder.build(); // 建立请求数据。
-        Call call = getHttpClient().newCall(request); // 使用请求数据建立请求。
-        Response response = call.execute(); // 发起请求。
-        if (response.code() != 200) {
-            throw new Exception("get error:" + url + " [" + response.code() + "] " + response.message());
-        }
-        return response.body().string();
+        return _requestForString(_makeGetRequest(url, params, headers));
     }
 
     /**
@@ -104,13 +129,7 @@ public class HttpUtil {
     public static String post(String url, final MediaType contentType, final byte[] bodyBytes, Map<String, String> headers) throws Exception {
         Request.Builder builder = new Request.Builder();
         builder.url(url);
-        if (headers != null && headers.size() > 0) {
-            Set<Map.Entry<String, String>> entries = headers.entrySet();
-            for (Map.Entry<String, String> entry : entries) {
-                builder.addHeader(entry.getKey(), entry.getValue());
-            }
-        }
-
+        _putHearderInRequestBuilder(builder, headers);
         builder.post(RequestBody.create(contentType, bodyBytes));
         Request request = builder.build(); // 建立请求数据。
         Call call = getHttpClient().newCall(request); // 使用请求数据建立请求。
@@ -260,12 +279,7 @@ public class HttpUtil {
     public static String upload(String url, Map<String, String> params, Map<String, String> headers, File... files) throws Exception {
         Request.Builder builder = new Request.Builder();
         builder.url(url);
-        if (headers != null && headers.size() > 0) {
-            Set<Map.Entry<String, String>> entries = headers.entrySet();
-            for (Map.Entry<String, String> entry : entries) {
-                builder.addHeader(entry.getKey(), entry.getValue());
-            }
-        }
+        _putHearderInRequestBuilder(builder, headers);
         final MultipartBody.Builder multipartBodyBuilder = new MultipartBody.Builder();
         multipartBodyBuilder.setType(MultipartBody.FORM);
 
@@ -337,30 +351,12 @@ public class HttpUtil {
      * @return
      */
     public static File download(String url, Map<String, String> params, Map<String, String> headers, File fileOrDir) throws Exception {
-        String queryString = map2wwwUrlFormEncode(params);
-        if (queryString.length() > 0) {
-            if (url.contains("?")) {
-                url = url + "&" + queryString;
-            } else {
-                url = url + "?" + queryString;
-            }
-        }
 
         Request.Builder builder = new Request.Builder();
-        builder.url(url);
-        if (headers != null && headers.size() > 0) {
-            Set<Map.Entry<String, String>> entries = headers.entrySet();
-            for (Map.Entry<String, String> entry : entries) {
-                builder.addHeader(entry.getKey(), entry.getValue());
-            }
-        }
+        builder.url(_makeParamUrl(url, params));
+        _putHearderInRequestBuilder(builder,headers);
         builder.get();
-        Request request = builder.build(); // 建立请求数据。
-        Call call = getHttpClient().newCall(request); // 使用请求数据建立请求。
-        Response response = call.execute(); // 发起请求。
-        if (response.code() != 200) {
-            throw new Exception("download error:" + url + " [" + response.code() + "] " + response.message());
-        }
+        Response response = _requestForResponse(builder.build());
 
         if (fileOrDir == null || fileOrDir.isDirectory()) {
 
@@ -460,7 +456,7 @@ public class HttpUtil {
      * @return 结果
      * @throws Exception
      */
-    public static String map2wwwUrlFormEncode(Map<String, ?> params, String charSet) throws Exception {
+    public static String map2wwwUrlFormEncode(Map<String, ?> params, String charSet) {
         if (params == null || params.size() < 1) {
             return "";
         }
@@ -468,7 +464,9 @@ public class HttpUtil {
         StringBuilder stringBuilder = new StringBuilder();
         Set<? extends Map.Entry<String, ?>> entries = params.entrySet();
         for (Map.Entry<String, ?> entry : entries) {
-            String value = URLEncoder.encode(entry.getValue().toString(), charSet);
+            String value = null;
+            try { value = URLEncoder.encode(entry.getValue().toString(), charSet); }
+            catch (UnsupportedEncodingException e) { e.printStackTrace(); }
             stringBuilder.append(entry.getKey()).append("=").append(value).append("&");
         }
         return stringBuilder.toString();
@@ -481,7 +479,7 @@ public class HttpUtil {
      * @return 结果
      * @throws Exception
      */
-    public static String map2wwwUrlFormEncode(Map<String, ?> params) throws Exception {
+    public static String map2wwwUrlFormEncode(Map<String, ?> params) {
         return map2wwwUrlFormEncode(params, CHARSET);
     }
 
@@ -498,5 +496,16 @@ public class HttpUtil {
     // 持有2个泛型定义和一个方法的接口
     private interface Fun<A, B> {
         void d0fun(A a, B b) throws Exception;
+    }
+
+    public static class NetException extends Exception {
+        private int code;
+        public NetException(int code) {
+            this("net error", code);
+        }
+        public NetException(String msg, int code) {
+            super(msg);
+            this.code = code;
+        }
     }
 }
