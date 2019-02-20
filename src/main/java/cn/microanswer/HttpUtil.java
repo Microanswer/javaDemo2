@@ -10,14 +10,28 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * 网络请求工具。<br>
+ * 此文件依赖：<br>
+ *  <pre>
+ *      &lt;dependency&gt;
+ *          &lt;groupId&gt;com.squareup.okhttp3&lt;/groupId&gt;
+ *          &lt;artifactId&gt;okhttp&lt;/artifactId&gt;
+ *          &lt;version&gt;3.7.0&lt;/version&gt;
+ *      &lt;/dependency&gt;
+ *      &lt;dependency&gt;
+ *          &lt;groupId&gt;com.alibaba&lt;/groupId&gt;
+ *          &lt;artifactId&gt;fastjson&lt;/artifactId&gt;
+ *          &lt;version&gt;1.2.47&lt;/version&gt;
+ *      &lt;/dependency&gt;
+ * 	</pre>
+ */
 public class HttpUtil {
     private static String CHARSET = "UTF-8";
-    public static final MediaType APPLICATION_JSON = MediaType.parse("application/json");
-    public static final MediaType APPLICATION_XML = MediaType.parse("application/xml");
-    public static final MediaType X_WWW_FORM_URLENCODED = MediaType.parse("application/x-www-form-urlencoded");
-
+    private static final MediaType APPLICATION_JSON = MediaType.parse("application/json");
+    private static final MediaType APPLICATION_XML = MediaType.parse("application/xml");
+    private static final MediaType X_WWW_FORM_URLENCODED = MediaType.parse("application/x-www-form-urlencoded");
     private static OkHttpClient __httpClient;
-
     private static OkHttpClient getHttpClient() {
         if (__httpClient == null) {
             __httpClient = new OkHttpClient
@@ -29,7 +43,6 @@ public class HttpUtil {
         }
         return __httpClient;
     }
-
     private static Response _requestForResponse(Request request) throws NetException {
         Call call = getHttpClient().newCall(request); // 使用请求数据建立请求。
         Response response = null; // 发起请求。
@@ -38,7 +51,7 @@ public class HttpUtil {
             if (response.code() != 200) {
                 throw new Exception(request.method() + " error:" + request.url() + " [" + response.code() + "] " + response.message());
             }
-        }catch (Exception e) {
+        } catch (Exception e) {
             int code = -1;
             if (response != null) {
                 code = response.code();
@@ -50,9 +63,14 @@ public class HttpUtil {
     }
     private static String _requestForString(Request request) throws NetException {
         Response response = _requestForResponse(request);
-        return response.body().toString();
+        String resStr = "";
+        try {
+            resStr = response.body().string();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return resStr;
     }
-
     private static String _makeParamUrl(String url, Map<String, String> params) {
         String queryString = map2wwwUrlFormEncode(params);
         if (queryString.length() > 0) {
@@ -64,8 +82,7 @@ public class HttpUtil {
         }
         return url;
     }
-
-    private static void _putHearderInRequestBuilder (Request.Builder builder, Map<String, String> headers) {
+    private static void _putHearderInRequestBuilder(Request.Builder builder, Map<String, String> headers) {
         if (headers != null && headers.size() > 0) {
             Set<Map.Entry<String, String>> entries = headers.entrySet();
             for (Map.Entry<String, String> entry : entries) {
@@ -80,6 +97,15 @@ public class HttpUtil {
         builder.get();
         return builder.build();
     }
+    private static void mapForEach(Map<String, String> map, Fun<String, String> fun) throws Exception {
+        if (map == null || map.size() <= 0 || fun == null) {
+            return;
+        }
+        Set<Map.Entry<String, String>> entries = map.entrySet();
+        for (Map.Entry<String, String> entry : entries) {
+            fun.d0fun(entry.getKey(), entry.getValue());
+        }
+    }
 
     /**
      * 使用 get方法 请求某地址。
@@ -87,7 +113,7 @@ public class HttpUtil {
      * @param url     [Y] 要请求的地址
      * @param params  [N] 请求参数
      * @param headers [N] 请求头
-     * @return
+     * @return 请求返回的字符串
      */
     public static String get(String url, Map<String, String> params, Map<String, String> headers) throws Exception {
 
@@ -273,8 +299,8 @@ public class HttpUtil {
      * @param params  [N] 参数
      * @param headers [N] 参数
      * @param files   [N] 文件
-     * @return
-     * @throws Exception
+     * @return 上传完成后，服务器返回的字符串
+     * @throws Exception 错误
      */
     public static String upload(String url, Map<String, String> params, Map<String, String> headers, File... files) throws Exception {
         Request.Builder builder = new Request.Builder();
@@ -321,7 +347,7 @@ public class HttpUtil {
      * @param url    [Y] 地址
      * @param params [N] 参数
      * @param files  [N] 文件
-     * @return
+     * @return 上传完成后，服务器返回的字符串
      * @throws Exception
      */
     public static String upload(String url, Map<String, String> params, File... files) throws Exception {
@@ -334,8 +360,8 @@ public class HttpUtil {
      *
      * @param url   [Y] 地址
      * @param files [N] 文件
-     * @return
-     * @throws Exception
+     * @return 上传完成后，服务器返回的字符串
+     * @throws Exception 错误
      */
     public static String upload(String url, File... files) throws Exception {
         return upload(url, null, files);
@@ -348,15 +374,10 @@ public class HttpUtil {
      * @param params    [N] 参数
      * @param headers   [N] 请求头
      * @param fileOrDir [N] 下载目录或直接对应文件。
-     * @return
+     * @return 下载完成后对应的文件
      */
     public static File download(String url, Map<String, String> params, Map<String, String> headers, File fileOrDir) throws Exception {
-
-        Request.Builder builder = new Request.Builder();
-        builder.url(_makeParamUrl(url, params));
-        _putHearderInRequestBuilder(builder,headers);
-        builder.get();
-        Response response = _requestForResponse(builder.build());
+        Response response = _requestForResponse(_makeGetRequest(url, params, headers));
 
         if (fileOrDir == null || fileOrDir.isDirectory()) {
 
@@ -381,7 +402,24 @@ public class HttpUtil {
 
             // 依然没有文件名，只有使用时间戳来命名了。
             if (fileName.length() < 1) {
-                fileName = System.currentTimeMillis() + ".httputildownload";
+                fileName = String.valueOf(System.currentTimeMillis());
+            }
+
+            if (!fileName.contains(".")) {
+                // 如果文件中没有 . ，说明没有后缀
+                // 尝试从header中获取后缀
+                // 使用时间戳命名，文件后缀从 Content-Type 中获取。
+                String fileEnd = response.header("Content-Type");
+                if (fileEnd != null && fileEnd.length() > 0) {
+                    if (fileEnd.contains(";")) {
+                        fileEnd = fileEnd.substring(fileEnd.indexOf("/") + 1, fileEnd.indexOf(";"));
+                    } else {
+                        fileEnd = fileEnd.substring(fileEnd.indexOf("/") + 1);
+                    }
+                } else {
+                    fileEnd = "httputildownload";
+                }
+                fileName = fileName + "." + fileEnd;
             }
 
             if (fileOrDir == null) {
@@ -420,7 +458,7 @@ public class HttpUtil {
      *
      * @param url       [Y] url下载路径
      * @param fileOrDir [N] 目录或文件保存路径，如果不传，将保存在零时目录
-     * @return
+     * @return 下载完成后对应的文件
      */
     public static File download(String url, File fileOrDir) throws Exception {
         return download(url, null, null, fileOrDir);
@@ -431,7 +469,7 @@ public class HttpUtil {
      *
      * @param url           [Y] url下载路径
      * @param fileOrDirPath [N] 目录或文件保存路径，如果不传，将保存在零时目录
-     * @return
+     * @return 下载完成后对应的文件
      */
     public static File download(String url, String fileOrDirPath) throws Exception {
         return download(url, new File(fileOrDirPath));
@@ -441,8 +479,8 @@ public class HttpUtil {
      * 下载 url 对应的文件。 文件将被保存到零时文件夹。如果指定的文件已存在，将会覆盖。
      *
      * @param url [Y] 下载路径
-     * @return
-     * @throws Exception
+     * @return 下载完成后对应的文件
+     * @throws Exception 错误
      */
     public static File download(String url) throws Exception {
         return download(url, (File) null);
@@ -454,7 +492,6 @@ public class HttpUtil {
      * @param params  [N] 要转换的集合map
      * @param charSet [Y] 编码方式
      * @return 结果
-     * @throws Exception
      */
     public static String map2wwwUrlFormEncode(Map<String, ?> params, String charSet) {
         if (params == null || params.size() < 1) {
@@ -465,8 +502,11 @@ public class HttpUtil {
         Set<? extends Map.Entry<String, ?>> entries = params.entrySet();
         for (Map.Entry<String, ?> entry : entries) {
             String value = null;
-            try { value = URLEncoder.encode(entry.getValue().toString(), charSet); }
-            catch (UnsupportedEncodingException e) { e.printStackTrace(); }
+            try {
+                value = URLEncoder.encode(entry.getValue().toString(), charSet);
+            } catch (UnsupportedEncodingException e) {
+                e.printStackTrace();
+            }
             stringBuilder.append(entry.getKey()).append("=").append(value).append("&");
         }
         return stringBuilder.toString();
@@ -477,20 +517,9 @@ public class HttpUtil {
      *
      * @param params [N] 要转换的集合map
      * @return 结果
-     * @throws Exception
      */
     public static String map2wwwUrlFormEncode(Map<String, ?> params) {
         return map2wwwUrlFormEncode(params, CHARSET);
-    }
-
-    private static void mapForEach(Map<String, String> map, Fun<String, String> fun) throws Exception {
-        if (map == null || map.size() <= 0 || fun == null) {
-            return;
-        }
-        Set<Map.Entry<String, String>> entries = map.entrySet();
-        for (Map.Entry<String, String> entry : entries) {
-            fun.d0fun(entry.getKey(), entry.getValue());
-        }
     }
 
     // 持有2个泛型定义和一个方法的接口
@@ -500,9 +529,11 @@ public class HttpUtil {
 
     public static class NetException extends Exception {
         private int code;
+
         public NetException(int code) {
             this("net error", code);
         }
+
         public NetException(String msg, int code) {
             super(msg);
             this.code = code;
