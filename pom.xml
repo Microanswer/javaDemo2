@@ -14,15 +14,15 @@
 	<properties>
 		<project.baseDir>D:/project/javaDemo2</project.baseDir>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<maven.compiler.source>1.7</maven.compiler.source>
-		<maven.compiler.target>1.7</maven.compiler.target>
+		<maven.compiler.source>1.8</maven.compiler.source>
+		<maven.compiler.target>1.8</maven.compiler.target>
 	</properties>
 
 	<dependencies>
 		<dependency>
 			<groupId>com.squareup.okhttp3</groupId>
 			<artifactId>okhttp</artifactId>
-			<version>3.7.0</version>
+			<version>LATEST</version>
 		</dependency>
 		<dependency>
 			<groupId>com.alibaba</groupId>
@@ -40,6 +40,11 @@
 			<version>1.0</version>
 			<scope>system</scope>
 			<systemPath>${project.baseDir}/libs/Qrcode.jar</systemPath>
+		</dependency>
+		<dependency>
+			<groupId>org.jsoup</groupId>
+			<artifactId>jsoup</artifactId>
+			<version>LATEST</version>
 		</dependency>
 	</dependencies>
 
