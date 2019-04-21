@@ -5,6 +5,7 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import okhttp3.*;
 import okhttp3.EventListener;
+import okhttp3.internal.http.RetryAndFollowUpInterceptor;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 
@@ -22,7 +23,7 @@ import java.util.zip.GZIPInputStream;
  * 3、jsoup
  * </p>
  */
-public class Spider extends EventListener implements Interceptor{
+public class Spider extends EventListener implements Interceptor {
 
     private static OkHttpClient okHttpClient;
 
@@ -58,7 +59,32 @@ public class Spider extends EventListener implements Interceptor{
         e.printStackTrace();
     }
 
-    ;
+
+    private static OkHttpClient getOkHttpClient(Spider spider) {
+        if (okHttpClient == null) {
+            okHttpClient = new OkHttpClient.Builder()
+                    .eventListener(spider)
+                    .addNetworkInterceptor(spider)
+                    .build();
+        }
+        return okHttpClient;
+    }
+
+    @Override
+    public Response intercept(Chain chain) throws IOException {
+
+        Request request = chain.request();
+        HttpUrl url = request.url();
+
+        CookieHandle cookieHandle = getCookieHandle(url.host());
+        List<Cookie> cookies = cookieHandle.getCookies(url);
+        String cookieStr = cookies2Str(cookies);
+        Request request1 = request.newBuilder().addHeader("Cookie", cookieStr).build();
+
+        Response response = chain.proceed(request1);
+        cookieHandle.handleCookies(Cookie.parseAll(url, response.headers()));
+        return response;
+    }
 
     /**
      * 打开url
@@ -184,9 +210,9 @@ public class Spider extends EventListener implements Interceptor{
     // 下载文件到指定文件。
     public File downloadInFile(String url, File dir, List<Cookie> cookies, Map<String, String> headers) throws IOException {
         if (!dir.exists()) {
-             if (!dir.mkdirs()) {
-                 throw new IOException("目录:" + dir.getCanonicalPath() + " 创建失败。");
-             }
+            if (!dir.mkdirs()) {
+                throw new IOException("目录:" + dir.getCanonicalPath() + " 创建失败。");
+            }
         }
         Response response = get(url, cookies, headers);
 
@@ -372,17 +398,6 @@ public class Spider extends EventListener implements Interceptor{
         return cookieHandle;
     }
 
-    private static OkHttpClient getOkHttpClient(Spider spider) {
-        if (okHttpClient == null) {
-            okHttpClient = new OkHttpClient.Builder()
-                    .eventListener(spider)
-                    .addInterceptor(spider)
-                    .addNetworkInterceptor(spider)
-                    .build();
-        }
-        return okHttpClient;
-    }
-
     private static SpiderConfig newConfig() {
         SpiderConfig spdf = new SpiderConfig();
 
@@ -531,27 +546,6 @@ public class Spider extends EventListener implements Interceptor{
         return "";
     }
 
-    @Override
-    public Response intercept(Chain chain) throws IOException {
-        // 将响应的cookie添加到下一个call(如果下一个call会请求的话。)里面。
-        System.out.println(1);
-
-        Request request = chain.request();
-        String cookie = request.header("Cookie");
-        System.out.println("请求cookie:"+cookie);
-        HttpUrl url = request.url();
-        Response response = chain.proceed(request);
-
-        CookieHandle cookieHandle = getCookieHandle(url.host());
-        cookieHandle.handleCookies(Cookie.parseAll(url, response.headers()));
-        List<Cookie> cookies = cookieHandle.getCookies(url);
-        String cookieStr = cookies2Str(cookies);
-        System.out.println("返回cookie："+cookieStr);
-        request.newBuilder().addHeader("Cookie", cookieStr);
-
-        return response;
-    }
-
     // 爬虫类配置文件。
     public static class SpiderConfig {
         public String userAgent;
@@ -663,6 +657,4 @@ public class Spider extends EventListener implements Interceptor{
 
         }
     }
-
-
 }
