@@ -3,6 +3,7 @@ package cn.microanswer.Spider;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.sun.istack.internal.NotNull;
 import okhttp3.*;
 import okhttp3.EventListener;
 import okhttp3.internal.http.RetryAndFollowUpInterceptor;
@@ -23,7 +24,7 @@ import java.util.zip.GZIPInputStream;
  * 3、jsoup
  * </p>
  */
-public class Spider extends EventListener implements Interceptor {
+public class Spider {
 
     private static OkHttpClient okHttpClient;
 
@@ -59,39 +60,20 @@ public class Spider extends EventListener implements Interceptor {
         e.printStackTrace();
     }
 
-
+    // 单列， 让多个Spider实例适用同一个http请求客户端。
     private static OkHttpClient getOkHttpClient(Spider spider) {
         if (okHttpClient == null) {
             okHttpClient = new OkHttpClient.Builder()
-                    .eventListener(spider)
-                    .addNetworkInterceptor(spider)
+                    .eventListener(spider.new MyEventListener())
+                    .addNetworkInterceptor(spider.new MyCookieFixInterceptor())
                     .build();
         }
         return okHttpClient;
     }
 
-    @Override
-    public Response intercept(Chain chain) throws IOException {
-
-        Request request = chain.request();
-        HttpUrl url = request.url();
-
-        CookieHandle cookieHandle = getCookieHandle(url.host());
-        List<Cookie> cookies = cookieHandle.getCookies(url);
-        String cookieStr = cookies2Str(cookies);
-        Request request1 = request.newBuilder().addHeader("Cookie", cookieStr).build();
-
-        Response response = chain.proceed(request1);
-        cookieHandle.handleCookies(Cookie.parseAll(url, response.headers()));
-        return response;
-    }
-
-    /**
-     * 打开url
-     *
-     * @return 请求结果。
-     */
+    // 打开url
     public Response open(String url, String method, RequestBody requestBody, List<Cookie> cookies, Map<String, String> headers) throws IOException {
+
         logDebug(method + " 地址：" + url);
         HttpUrl httpUrl = HttpUrl.parse(url);
 
@@ -99,7 +81,7 @@ public class Spider extends EventListener implements Interceptor {
         // 请求地址。
         builder.url(httpUrl);
 
-        Map<String, String> innerHeader = getInnerHeader(httpUrl, cookies);
+        Map<String, String> innerHeader = getInnerHeader(httpUrl);
         if (!isEmpty(innerHeader) && !isEmpty(headers)) innerHeader.putAll(headers);
         // 添加请求头
         if (!isEmpty(innerHeader)) {
@@ -107,6 +89,10 @@ public class Spider extends EventListener implements Interceptor {
                 builder.addHeader(hd.getKey(), hd.getValue());
             }
         }
+
+        // 添加cookie
+        CookieHandle cookieHandle = getCookieHandle(httpUrl.host());
+        cookieHandle.handleCookies(cookies);
 
         // 添加请求方法 和请求数据体。
         builder.method(method, requestBody);
@@ -119,9 +105,8 @@ public class Spider extends EventListener implements Interceptor {
 
         Call call = okHttpClient.newCall(request);
 
-
         // 执行请求
-        return handleResponse(call.execute());
+        return call.execute();
     }
 
     public Response open(String url, String method, RequestBody requestBody, List<Cookie> cookies) throws IOException {
@@ -274,12 +259,13 @@ public class Spider extends EventListener implements Interceptor {
         return downloadInFile(url, new File(dir), null);
     }
 
+    // 解析 html 文档
     public Document parseHtml(String html) {
         return Jsoup.parse(html);
     }
 
     // 从响应中获取字符串内容。此方法处理了响应如果是压缩格式的内容。
-    public String response2String(Response response) throws IOException {
+    private String response2String(Response response) throws IOException {
         String contentEncoding = response.header("Content-Encoding");
         String charset = null;
 
@@ -309,16 +295,9 @@ public class Spider extends EventListener implements Interceptor {
         }
     }
 
-    /**
-     * 返回内部处理了的请求头部分。
-     *
-     * @param httpUrl 请求地址
-     * @param cookies 自定义的cookie
-     * @return
-     */
-    private Map<String, String> getInnerHeader(HttpUrl httpUrl, List<Cookie> cookies) {
+    // 返回内部处理了的请求头部分。
+    private Map<String, String> getInnerHeader(HttpUrl httpUrl) {
         String host = httpUrl.host();
-        CookieHandle cookieHandle = getCookieHandle(host);
 
         Map<String, String> innerHeaders = new HashMap<>();
         innerHeaders.put("Accept", spiderConfig.accept);
@@ -327,35 +306,6 @@ public class Spider extends EventListener implements Interceptor {
         innerHeaders.put("User-Agent", spiderConfig.userAgent);
         innerHeaders.put("Connection", spiderConfig.connection);
         innerHeaders.put("Host", host);
-
-        List<Cookie> cookiesInner = cookieHandle.getCookies(httpUrl);
-        boolean isCookiesInnerEmpty = isEmpty(cookiesInner);
-        boolean isCookiesEmpty = isEmpty(cookies);
-
-        String cookieStr;
-        if (!isCookiesInnerEmpty && isCookiesEmpty) {
-            cookieStr = cookies2Str(cookiesInner);
-        } else if (isCookiesInnerEmpty && !isCookiesEmpty) {
-            cookieStr = cookies2Str(cookies);
-        } else if (!isCookiesInnerEmpty /*&& !isCookiesEmpty  注释掉的这点判断 始终是 true */) {
-            // 去除重复cookie
-            for (Cookie cookie : cookies) {
-                int i = indexOfCookie(cookiesInner, cookie);
-                if (i == -1) {
-                    cookiesInner.add(cookie);
-                } else {
-                    cookiesInner.set(i, cookie);
-                }
-            }
-            cookieStr = cookies2Str(cookiesInner);
-        } else {
-            cookieStr = null;
-        }
-
-        if (cookieStr != null) {
-            logDebug("提交Cookie：" + cookieStr);
-            innerHeaders.put("Cookie", cookieStr);
-        }
 
         return innerHeaders;
     }
@@ -380,15 +330,7 @@ public class Spider extends EventListener implements Interceptor {
         return stringBuilder.toString();
     }
 
-    // 保存请求返回的cookie什么的
-    private Response handleResponse(Response response) {
-        HttpUrl url = response.request().url();
-        List<Cookie> cookieList = Cookie.parseAll(url, response.headers());
-        CookieHandle cookieHandle = getCookieHandle(url.host());
-        cookieHandle.handleCookies(cookieList);
-        return response;
-    }
-
+    // 返回当前适用的cookie处理器。
     private CookieHandle getCookieHandle(String host) {
         CookieHandle cookieHandle = cookieHandleMap.get(host);
         if (cookieHandle == null) {
@@ -398,6 +340,7 @@ public class Spider extends EventListener implements Interceptor {
         return cookieHandle;
     }
 
+    // 创建一个新的默认配置。
     private static SpiderConfig newConfig() {
         SpiderConfig spdf = new SpiderConfig();
 
@@ -411,14 +354,8 @@ public class Spider extends EventListener implements Interceptor {
         return spdf;
     }
 
-    /**
-     * 工具方法 - 将 map 集合转换为 www-url-form-encoded 格式的字符串。
-     *
-     * @param params  [N] 要转换的集合map
-     * @param charSet [Y] 编码方式
-     * @return 结果
-     */
-    public static String map2wwwUrlFormEncode(Map<String, ?> params, String charSet) {
+    // 工具方法 - 将 map 集合转换为 www-url-form-encoded 格式的字符串。
+    private static String map2wwwUrlFormEncode(Map<String, ?> params, String charSet) {
         if (params == null || params.size() < 1) {
             return "";
         }
@@ -437,13 +374,8 @@ public class Spider extends EventListener implements Interceptor {
         return stringBuilder.toString();
     }
 
-    /**
-     * 将 map 集合转换为 www-url-form-encoded 格式的字符串。。 默认使用 UTF-8 编码
-     *
-     * @param params [N] 要转换的集合map
-     * @return 结果
-     */
-    public static String map2wwwUrlFormEncode(Map<String, ?> params) {
+    // 工具方法 - 将 map 集合转换为 www-url-form-encoded 格式的字符串。
+    private static String map2wwwUrlFormEncode(Map<String, ?> params) {
         return map2wwwUrlFormEncode(params, "UTF-8");
     }
 
@@ -519,7 +451,6 @@ public class Spider extends EventListener implements Interceptor {
         }
     }
 
-
     // 工具方法 - 读取文件内容返回。
     private static String file2String(File f) {
         if (!f.getParentFile().exists()) {
@@ -565,7 +496,7 @@ public class Spider extends EventListener implements Interceptor {
         private List<Cookie> cookies;
 
 
-        public CookieHandle(String host) {
+        private CookieHandle(String host) {
             this.host = host;
             cookies = readCookieFromFile();
         }
@@ -585,6 +516,7 @@ public class Spider extends EventListener implements Interceptor {
 
         // 保存返回的所有cookie
         void handleCookies(List<Cookie> cookieList) {
+            if (isEmpty(cookieList)) return;
             logDebug("保存cookies：" + cookies2Str(cookieList));
             for (Cookie c : cookieList) {
                 int i = indexOfCookie(this.cookies, c);
@@ -594,7 +526,6 @@ public class Spider extends EventListener implements Interceptor {
                     this.cookies.set(i, c);
                 }
             }
-            saveCookie2File();
         }
 
         // 将cookie保存到文件。
@@ -655,6 +586,44 @@ public class Spider extends EventListener implements Interceptor {
                 return cookieList;
             }
 
+        }
+    }
+
+    // 修复重定向时不会将cookie一起提交的问题。
+    private class MyCookieFixInterceptor implements Interceptor {
+
+        @Override
+        public Response intercept(Chain chain) throws IOException {
+            Request request = chain.request();
+            HttpUrl url = request.url();
+
+            // 每次请求都将cookie带上。
+            CookieHandle cookieHandle = getCookieHandle(url.host());
+            List<Cookie> cookies = cookieHandle.getCookies(url);
+            String cookieStr = cookies2Str(cookies);
+            Request newRequest = request.newBuilder().addHeader("Cookie", cookieStr).build();
+            System.out.println(1);
+            return chain.proceed(newRequest);
+        }
+    }
+
+    // 请求事件监听器。
+    private class MyEventListener extends EventListener {
+        @Override
+        public void responseHeadersEnd(Call call, Response response) {
+            // 保存请求返回的cookie什么的
+            HttpUrl url = response.request().url();
+            List<Cookie> cookieList = Cookie.parseAll(url, response.headers());
+            CookieHandle cookieHandle = getCookieHandle(url.host());
+            cookieHandle.handleCookies(cookieList);
+        }
+
+        @Override
+        public void callEnd(Call call) {
+            // 每次请求完成，保存一次cookie到文件。
+            String host = call.request().url().host();
+            CookieHandle cookieHandle = getCookieHandle(host);
+            cookieHandle.saveCookie2File();
         }
     }
 }
