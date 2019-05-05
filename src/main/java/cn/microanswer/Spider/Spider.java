@@ -3,10 +3,8 @@ package cn.microanswer.Spider;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import com.sun.istack.internal.NotNull;
-import okhttp3.*;
 import okhttp3.EventListener;
-import okhttp3.internal.http.RetryAndFollowUpInterceptor;
+import okhttp3.*;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 
@@ -69,6 +67,12 @@ public class Spider {
                     .build();
         }
         return okHttpClient;
+    }
+
+    // 设置响应数据的编码方式。
+    public Spider setResponseCharSet(String charSet) {
+        this.spiderConfig.responseCharset = charSet;
+        return this;
     }
 
     // 打开url
@@ -265,7 +269,7 @@ public class Spider {
     }
 
     // 从响应中获取字符串内容。此方法处理了响应如果是压缩格式的内容。
-    private String response2String(Response response) throws IOException {
+    public String response2String(Response response) throws IOException {
         String contentEncoding = response.header("Content-Encoding");
         String charset = null;
 
@@ -596,13 +600,23 @@ public class Spider {
         public Response intercept(Chain chain) throws IOException {
             Request request = chain.request();
             HttpUrl url = request.url();
+            // System.out.println("打开地址：" + url.toString());
 
             // 每次请求都将cookie带上。
             CookieHandle cookieHandle = getCookieHandle(url.host());
             List<Cookie> cookies = cookieHandle.getCookies(url);
             String cookieStr = cookies2Str(cookies);
-            Request newRequest = request.newBuilder().addHeader("Cookie", cookieStr).build();
-            System.out.println(1);
+            Request newRequest = request.newBuilder()
+                    .addHeader("Cookie", cookieStr)
+                    .header("Host", url.host())
+                    .build();
+            // Headers headers = newRequest.headers();
+            // Set<String> names = headers.names();
+            // System.out.println("提交请求头：");
+            // for (String name: names) {
+            //     System.out.println(name+":" + headers.values(name));
+            // }
+            // System.out.println(1);
             return chain.proceed(newRequest);
         }
     }
@@ -612,8 +626,14 @@ public class Spider {
         @Override
         public void responseHeadersEnd(Call call, Response response) {
             // 保存请求返回的cookie什么的
+            // System.out.println("responseHeadersEnd");
             HttpUrl url = response.request().url();
-            List<Cookie> cookieList = Cookie.parseAll(url, response.headers());
+            Headers headers = response.headers();
+            // System.out.println("返回头：");
+            // for (String name: headers.names()                 ) {
+            //     System.out.println(name + ":" + headers.values(name));
+            // }
+            List<Cookie> cookieList = Cookie.parseAll(url, headers);
             CookieHandle cookieHandle = getCookieHandle(url.host());
             cookieHandle.handleCookies(cookieList);
         }
