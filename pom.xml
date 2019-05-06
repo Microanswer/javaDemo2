@@ -12,7 +12,7 @@
 	<url>http://microanswer.cns</url>
 
 	<properties>
-		<project.baseDir>D:/project/javaDemo2</project.baseDir>
+		<project.baseDir>C:/Users/Microanswer/Project/javaDemo2</project.baseDir>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<maven.compiler.source>1.8</maven.compiler.source>
 		<maven.compiler.target>1.8</maven.compiler.target>
@@ -44,6 +44,11 @@
 		<dependency>
 			<groupId>org.jsoup</groupId>
 			<artifactId>jsoup</artifactId>
+			<version>LATEST</version>
+		</dependency>
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
 			<version>LATEST</version>
 		</dependency>
 	</dependencies>

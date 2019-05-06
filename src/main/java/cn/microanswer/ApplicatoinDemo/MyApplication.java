@@ -1,5 +1,5 @@
 package cn.microanswer.ApplicatoinDemo;
-
+/*
 import javafx.application.Application;
 import javafx.collections.ObservableList;
 import javafx.geometry.Orientation;
@@ -24,7 +24,7 @@ public class MyApplication extends Application {
      *
      * @param primaryStage
      * @throws Exception
-     */
+     *
     @Override
     public void start(Stage primaryStage) throws Exception {
 
@@ -84,3 +84,4 @@ public class MyApplication extends Application {
         primaryStage.show();
     }
 }
+*/

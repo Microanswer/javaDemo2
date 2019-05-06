@@ -1,5 +1,5 @@
 package cn.microanswer;
-
+/*
 
 import javafx.application.Application;
 import javafx.event.ActionEvent;
@@ -32,3 +32,4 @@ public class Test42 extends Application {
         primaryStage.show();
     }
 }
+*/

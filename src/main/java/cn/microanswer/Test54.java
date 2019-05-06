@@ -28,7 +28,7 @@ public class Test54 {
      * @param type      图片类型
      * @return 数组, 格式如：[["title", "href"], ["title", "href"]...]
      */
-    private Object[][] getImgList(int pageIndex, String type) throws IOException {
+    public Object[][] getImgList(int pageIndex, String type) throws IOException {
         Response response = this.spider
                 .setResponseCharSet("GB2312")
                 .get("https://www.2717.com/ent/" + type + "/list_11_" + pageIndex + ".html");
