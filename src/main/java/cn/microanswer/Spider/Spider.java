@@ -24,8 +24,10 @@ import java.util.zip.GZIPInputStream;
  */
 public class Spider {
 
-    private static OkHttpClient okHttpClient;
+    // http 请求客户端
+    private OkHttpClient okHttpClient;
 
+    // 配置
     private SpiderConfig spiderConfig;
 
     // 一个 host对应一个 CookieHandle ，所以使用map来保存、
@@ -58,8 +60,8 @@ public class Spider {
         e.printStackTrace();
     }
 
-    // 单列， 让多个Spider实例适用同一个http请求客户端。
-    private static OkHttpClient getOkHttpClient(Spider spider) {
+    // http请求客户端。
+    private OkHttpClient getOkHttpClient(Spider spider) {
         if (okHttpClient == null) {
             okHttpClient = new OkHttpClient.Builder()
                     .eventListener(spider.new MyEventListener())
@@ -75,7 +77,7 @@ public class Spider {
         return this;
     }
 
-    // 打开url
+    // 打开指定url
     public Response open(String url, String method, RequestBody requestBody, List<Cookie> cookies, Map<String, String> headers) throws IOException {
 
         logDebug(method + " 地址：" + url);
@@ -113,90 +115,109 @@ public class Spider {
         return call.execute();
     }
 
+    // 打开指定url
     public Response open(String url, String method, RequestBody requestBody, List<Cookie> cookies) throws IOException {
         return open(url, method, requestBody, cookies, null);
     }
 
+    // 打开指定url
     public Response open(String url, String method, RequestBody requestBody) throws IOException {
         return open(url, method, requestBody, null);
     }
 
+    // 执行使用get请求获取网页html内容
     public String getHtml(String url, List<Cookie> cookies, Map<String, String> headers) throws IOException {
         Response response = get(url, cookies, headers);
         return response2String(response);
     }
 
+    // 执行使用get请求获取网页html内容
     public String getHtml(String url, List<Cookie> cookies) throws IOException {
         return getHtml(url, cookies, null);
     }
 
+    // 执行使用get请求获取网页html内容
     public String getHtml(String url) throws IOException {
         return getHtml(url, null);
     }
 
+    // 执行get请求
     public Response get(String url, List<Cookie> cookies, Map<String, String> headers) throws IOException {
         return open(url, "GET", null, cookies, headers);
     }
 
+    // 执行get请求
     public Response get(String url, List<Cookie> cookies) throws IOException {
         return get(url, cookies, null);
     }
 
+    // 执行get请求
     public Response get(String url) throws IOException {
         return get(url, null);
     }
 
+    // 执行post请求
     public Response post(String url, RequestBody body, List<Cookie> cookies, Map<String, String> headers) throws IOException {
         return open(url, "POST", body, cookies, headers);
     }
 
+    // 执行post请求
     public Response post(String url, RequestBody body, List<Cookie> cookies) throws IOException {
         return post(url, body, cookies, null);
     }
 
+    // 执行post请求
     public Response post(String url, RequestBody body) throws IOException {
         return post(url, body, null);
     }
 
+    // 执行一个请求体为表单数据的post请求
     public Response postXwwwUrlEncode(String url, Map<String, String> body, List<Cookie> cookies, Map<String, String> headers) throws IOException {
         return post(url, RequestBody.create(MediaType.parse("application/x-www-form-urlencoded"), map2wwwUrlFormEncode(body)), cookies, headers);
     }
 
+    // 执行一个请求体为表单数据的post请求
     public Response postXwwwUrlEncode(String url, Map<String, String> body, List<Cookie> cookies) throws IOException {
         return postXwwwUrlEncode(url, body, cookies, null);
     }
 
+    // 执行一个请求体为表单数据的post请求
     public Response postXwwwUrlEncode(String url, Map<String, String> body) throws IOException {
         return postXwwwUrlEncode(url, body, null);
     }
 
+    // 执行一个请求体为json数据的post请求
     public Response postJson(String url, JSONObject jsonObject, List<Cookie> cookies, Map<String, String> headers) throws IOException {
         return post(url, RequestBody.create(MediaType.parse("application/json;charset=UTF-8"), jsonObject.toJSONString()), cookies, headers);
     }
 
+    // 执行一个请求体为json数据的post请求
     public Response postJson(String url, JSONObject jsonObject, List<Cookie> cookies) throws IOException {
         return postJson(url, jsonObject, cookies, null);
     }
 
+    // 执行一个请求体为json数据的post请求
     public Response postJson(String url, JSONObject jsonObject) throws IOException {
         return postJson(url, jsonObject, null);
     }
 
-    // 下载文件到内存中，返回文件内容流。
+    // 将文件下载到内存中，返回输入流
     public InputStream downloadInMem(String url, List<Cookie> cookies, Map<String, String> headers) throws IOException {
         Response response = get(url, cookies, headers);
         return response.body().byteStream();
     }
 
+    // 将文件下载到内存中，返回输入流
     public InputStream downloadInMem(String url, List<Cookie> cookies) throws IOException {
         return downloadInMem(url, cookies, null);
     }
 
+    // 将文件下载到内存中，返回输入流
     public InputStream downloadInMem(String url) throws IOException {
         return downloadInMem(url, null);
     }
 
-    // 下载文件到指定文件。
+    // 下载文件到指定的目录，返回下载成功的文件。
     public File downloadInFile(String url, File dir, List<Cookie> cookies, Map<String, String> headers) throws IOException {
         if (!dir.exists()) {
             if (!dir.mkdirs()) {
@@ -243,22 +264,27 @@ public class Spider {
         return file;
     }
 
+    // 下载文件到指定的目录，返回下载成功的文件。
     public File downloadInFile(String url, String dir, List<Cookie> cookies, Map<String, String> headers) throws IOException {
         return downloadInFile(url, new File(dir), cookies, headers);
     }
 
+    // 下载文件到指定的目录，返回下载成功的文件。
     public File downloadInFile(String url, File dir, List<Cookie> cookies) throws IOException {
         return downloadInFile(url, dir, cookies, null);
     }
 
+    // 下载文件到指定的目录，返回下载成功的文件。
     public File downloadInFile(String url, String dir, List<Cookie> cookies) throws IOException {
         return downloadInFile(url, new File(dir), cookies, null);
     }
 
+    // 下载文件到指定的目录，返回下载成功的文件。
     public File downloadInFile(String url, File dir) throws IOException {
         return downloadInFile(url, dir, null);
     }
 
+    // 下载文件到指定的目录，返回下载成功的文件。
     public File downloadInFile(String url, String dir) throws IOException {
         return downloadInFile(url, new File(dir), null);
     }
@@ -338,7 +364,7 @@ public class Spider {
     private CookieHandle getCookieHandle(String host) {
         CookieHandle cookieHandle = cookieHandleMap.get(host);
         if (cookieHandle == null) {
-            cookieHandle = new CookieHandle(host);
+            cookieHandle = new CookieHandle(host, this.spiderConfig.cookieDir);
             cookieHandleMap.put(host, cookieHandle);
         }
         return cookieHandle;
@@ -354,6 +380,7 @@ public class Spider {
         spdf.acceptLanguage = "zh-CN,zh;q=0.9,en;q=0.8";
         spdf.connection = "keep-alive";
         spdf.userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/73.0.3683.103 Safari/537.36";
+        spdf.cookieDir = new File("./cookies/");
 
         return spdf;
     }
@@ -489,20 +516,22 @@ public class Spider {
         public String acceptLanguage;
         public String connection;
         public String responseCharset;
+        public File cookieDir;
     }
 
     // 处理 cookie 的类。
     private class CookieHandle {
-        private File CookieDir = new File("./cookies/");
+        private File CookieDir;
 
         // 本cookie处理器对应的host
         private String host;
         private List<Cookie> cookies;
 
 
-        private CookieHandle(String host) {
+        private CookieHandle(String host, File CookieDir) {
             this.host = host;
             cookies = readCookieFromFile();
+            this.CookieDir = CookieDir;
         }
 
         // 根据某 url， 获取适用于此url的所有cookie。
