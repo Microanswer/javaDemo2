@@ -20,6 +20,11 @@
 
 	<dependencies>
 		<dependency>
+			<groupId>cn.microanswer</groupId>
+			<artifactId>HttpUtil</artifactId>
+			<version>1.0.0</version>
+		</dependency>
+		<dependency>
 			<groupId>com.squareup.okhttp3</groupId>
 			<artifactId>okhttp</artifactId>
 			<version>LATEST</version>
