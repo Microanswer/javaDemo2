@@ -1,8 +1,6 @@
 package cn.microanswer;
 
 
-import java.io.*;
-
 public class Test54 {
 
     /**
@@ -12,8 +10,30 @@ public class Test54 {
      */
     public static void main(String[] args) throws Exception {
 
-        String s = HttpUtil.get("https://isluo.com/");
-        System.out.println(s);
+        createClient(arg -> null);
+
+        // 上面的效果和下面的
+        createClient(new Mission() {
+            @Override
+            public Object d0(Object arg) {
+                // TODO
+                return null;
+            }
+        });
+        // 一样
 
     }
+
+
+    public static void createClient(Mission mission) {
+
+        Object arg = new Object();
+
+        mission.d0(arg);
+    }
+
+    public static interface Mission {
+        Object d0 (Object arg);
+    }
+
 }
