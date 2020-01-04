@@ -7,12 +7,73 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="format-detection" content="telephone=no">
     <meta name="renderer" content="webkit">
-    <title>资源不存在</title>
+    <title>登录回调</title>
+    <script src="https://cdn.jsdelivr.net/npm/jquery@2.1.0/dist/jquery.min.js"></script>
 </head>
 <body>
+
+
+<div id="test">
+    <div>
+        <button>0</button>
+    </div>
+    <div>
+        <button>1</button>
+    </div>
+    <div>
+        <button>2</button>
+    </div>
+</div>
+
+
 <p>跳转中...</p>
+
 <script>
-    window.location.href = "https://www.microanswer.cn";
+    var tk            = '<%=tk%>';
+    var ticket        = '<%=ticket%>';
+    var platformcode  = '<%=platformcode%>';
+    var s             = '<%=s%>';
+
+
+    "use strict";
+
+    function loadDomTree (ele) {
+        var childrenArray = $(ele).children();
+        if (childrenArray.length > 0) {
+
+        } else {
+            return ele;
+        }
+    }
+
+
+
+    $("#getBtnUrl").click(function() {
+
+        var hostUrl = window.location.host;
+
+        // 登录授权接口地址
+        var apiUrl = "http://cloud.jse.edu.cn";
+
+        var r = "/portal/user/login";
+
+        var url = apiUrl + "?r=" + encodeURIComponent(r) + "&service="+ encodeURIComponent(hostUrl +"/services");
+
+        window.location.replace(url);
+    });
+
+    var router = {};
+
+
+    // 讲述智慧教育云平台登录回调界面。
+    router.get("/jseLoginBack", function (req, res) {
+        var query = req.query;
+
+        res.render("getlogin", query);
+    });
+
+
+
 </script>
 </body>
 </html>
