@@ -8,16 +8,19 @@ public class Test57 {
 
     public static void main(String[] args) {
         JFrame jf = new JFrame();
+        jf.setTitle("Microanswer");
         jf.setBounds(700, 350, 400, 150);
         jf.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
 
-        JLabel jl = new JLabel("Hello World.");
+        JLabel jl = new JLabel("Hello World");
         jl.setHorizontalAlignment(JLabel.CENTER);
         jl.setFont(new Font("微软雅黑", Font.PLAIN, 50));
         jf.getContentPane().add(jl);
 
         jf.setVisible(true);
     }
+
+
 
     // java定义一个可变参数个数方法。
     // 要注意，可变参数必须放在形参的最后一个，且只能有一个。
